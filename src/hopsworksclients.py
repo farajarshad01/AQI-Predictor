@@ -52,7 +52,7 @@ def get_or_create_feature_group():
             ),
             primary_key=["datetime"],
             event_time="datetime",
-            online_enabled=True
+            online_enabled=True,
             time_travel_format="HUDI"
         )
     )

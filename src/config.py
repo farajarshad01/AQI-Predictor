@@ -9,7 +9,7 @@ LONGITUDE = float(os.environ["LONGITUDE"])
 HOPSWORKS_API_KEY = os.environ["HOPSWORKS_API_KEY"]
 
 
-FEATURE_GROUP_NAME = "aqi_features"
+FEATURE_GROUP_NAME = "aqi_features_v2"
 FEATURE_GROUP_VERSION = 1
 
 

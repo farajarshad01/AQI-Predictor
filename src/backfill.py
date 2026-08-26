@@ -35,7 +35,7 @@ def run():
 
     fetch_start = (
         start
-        - pd.Timedelta(hours=24)
+        - pd.Timedelta(hours=48)
     ).strftime(
         "%Y-%m-%d"
     )

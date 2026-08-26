@@ -8,4 +8,4 @@ catboost
 hopsworks
 streamlit
 python-dotenv
-delta-spark
+confluent-kafka

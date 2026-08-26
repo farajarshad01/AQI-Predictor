@@ -6,3 +6,4 @@ catboost
 hopsworks
 streamlit
 python-dotenv
+delta

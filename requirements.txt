@@ -1,9 +1,11 @@
 pandas
 numpy
+matplotlib
+seaborn
 requests
 scikit-learn
 catboost
 hopsworks
 streamlit
 python-dotenv
-delta
+delta-spark

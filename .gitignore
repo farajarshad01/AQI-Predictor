@@ -1,2 +1,16 @@
 .env
-*.ipynb
+
+.venv/
+venv/
+
+__pycache__/
+*.pyc
+
+.ipynb_checkpoints/
+
+downloaded_models/
+
+predictions.csv
+training_metrics.json
+
+.DS_Store

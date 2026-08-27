@@ -13,9 +13,9 @@ from sklearn.metrics import (
     r2_score
 )
 
-from config import FEATURES, MODEL_CONFIGS
+from .config import FEATURES, MODEL_CONFIGS
 
-from hopsworksclients import (
+from .hopsworksclients import (
     get_feature_group,
     get_project
 )

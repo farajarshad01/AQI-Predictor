@@ -31,6 +31,5 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run training pipeline
-        run: |
-          cd src
-          python training_pipeline.py
+       run: |
+        python -m src.training_pipeline

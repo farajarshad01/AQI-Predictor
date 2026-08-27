@@ -3,8 +3,8 @@ import os
 import pandas as pd
 from catboost import CatBoostRegressor
 
-from config import FEATURES, MODEL_CONFIGS
-from hopsworksclients import (
+from .config import FEATURES, MODEL_CONFIGS
+from .hopsworksclients import (
     get_feature_group,
     download_latest_model,
 )

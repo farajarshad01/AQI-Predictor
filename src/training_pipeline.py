@@ -2,7 +2,6 @@ import json
 import os
 import tempfile
 
-import joblib
 import numpy as np
 import pandas as pd
 
@@ -14,10 +13,7 @@ from sklearn.metrics import (
     r2_score
 )
 
-from config import (
-    FEATURES,
-    MODEL_CONFIGS
-)
+from config import FEATURES, MODEL_CONFIGS
 
 from hopsworksclients import (
     get_feature_group,
@@ -27,9 +23,7 @@ from hopsworksclients import (
 
 def load_features():
 
-    feature_group = (
-        get_feature_group()
-    )
+    feature_group = get_feature_group()
 
     df = (
         feature_group
@@ -42,6 +36,22 @@ def load_features():
             "Feature Store is empty."
         )
 
+    required_columns = [
+        "datetime",
+        "us_aqi"
+    ] + FEATURES
+
+    missing_columns = (
+        set(required_columns)
+        - set(df.columns)
+    )
+
+    if missing_columns:
+        raise ValueError(
+            "Feature Store is missing required "
+            f"columns: {missing_columns}"
+        )
+
     df["datetime"] = pd.to_datetime(
         df["datetime"],
         utc=True
@@ -50,12 +60,8 @@ def load_features():
     df = (
         df
         .sort_values("datetime")
-        .drop_duplicates(
-            "datetime"
-        )
-        .reset_index(
-            drop=True
-        )
+        .drop_duplicates("datetime")
+        .reset_index(drop=True)
     )
 
     return df
@@ -65,15 +71,15 @@ def create_targets(df):
 
     df = df.copy()
 
-    df["target_24"] = (
+    df["target_aqi_24"] = (
         df["us_aqi"].shift(-24)
     )
 
-    df["target_48"] = (
+    df["target_aqi_48"] = (
         df["us_aqi"].shift(-48)
     )
 
-    df["target_72"] = (
+    df["target_aqi_72"] = (
         df["us_aqi"].shift(-72)
     )
 
@@ -90,21 +96,21 @@ def evaluate_model(
         len(X) * 0.8
     )
 
-    X_train = X.iloc[
-        :split_index
-    ]
+    if split_index <= 0:
+        raise ValueError(
+            "Training dataset is too small."
+        )
 
-    X_test = X.iloc[
-        split_index:
-    ]
+    X_train = X.iloc[:split_index]
+    X_test = X.iloc[split_index:]
 
-    y_train = y.iloc[
-        :split_index
-    ]
+    y_train = y.iloc[:split_index]
+    y_test = y.iloc[split_index:]
 
-    y_test = y.iloc[
-        split_index:
-    ]
+    if X_test.empty:
+        raise ValueError(
+            "Test dataset is empty."
+        )
 
     model = CatBoostRegressor(
         iterations=config["iterations"],
@@ -119,8 +125,8 @@ def evaluate_model(
         y_train
     )
 
-    predictions = (
-        model.predict(X_test)
+    predictions = model.predict(
+        X_test
     )
 
     mae = mean_absolute_error(
@@ -207,6 +213,16 @@ def register_model(
             model_path
         )
 
+        print(
+            f"Registered model: "
+            f"{config['name']}"
+        )
+
+        print(
+            f"Model version: "
+            f"{registered_model.version}"
+        )
+
 
 def train_one_model(
     project,
@@ -227,7 +243,8 @@ def train_one_model(
     if len(data) < 100:
 
         raise ValueError(
-            f"Not enough data for {target}."
+            f"Not enough valid training rows "
+            f"for {target}: {len(data)}"
         )
 
     X = data[
@@ -245,23 +262,20 @@ def train_one_model(
     )
 
     print(
-        f"{target} metrics:"
+        f"\n{target} metrics:"
     )
 
     print(
-        f"MAE: {metrics['mae']}"
+        f"MAE: {metrics['mae']:.4f}"
     )
 
     print(
-        f"RMSE: {metrics['rmse']}"
+        f"RMSE: {metrics['rmse']:.4f}"
     )
 
     print(
-        f"R²: {metrics['r2']}"
+        f"R²: {metrics['r2']:.4f}"
     )
-
-    # Final production model:
-    # train on 100% of available data.
 
     final_model = train_final_model(
         X,
@@ -281,9 +295,21 @@ def train_one_model(
 
 def run():
 
+    print(
+        "Starting training pipeline..."
+    )
+
     project = get_project()
 
+    print(
+        "Loading feature data from Hopsworks..."
+    )
+
     df = load_features()
+
+    print(
+        f"Loaded {len(df)} feature rows."
+    )
 
     df = create_targets(
         df
@@ -293,14 +319,23 @@ def run():
 
     for horizon, config in MODEL_CONFIGS.items():
 
+        print(
+            f"\nTraining {horizon} model..."
+        )
+
         results[horizon] = train_one_model(
             project,
             df,
             config
         )
 
+    metrics_path = os.path.join(
+        os.getcwd(),
+        "training_metrics.json"
+    )
+
     with open(
-        "training_metrics.json",
+        metrics_path,
         "w"
     ) as file:
 
@@ -311,7 +346,7 @@ def run():
         )
 
     print(
-        "Training completed."
+        "\nTraining completed successfully."
     )
 
 

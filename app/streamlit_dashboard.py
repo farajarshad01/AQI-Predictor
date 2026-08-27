@@ -1,78 +1,92 @@
-import os
-
-import pandas as pd
 import streamlit as st
+
+from prediction_pipeline import predict
 
 
 st.set_page_config(
     page_title="AQI Forecast",
-    layout="wide"
+    page_icon="🌍",
+    layout="wide",
 )
 
 
-st.title(
-    "Air Quality Forecast"
+st.title("Air Quality Forecast")
+
+st.write(
+    "Generate an AQI forecast using the latest "
+    "features and registered CatBoost models."
 )
 
 
-prediction_file = "predictions.csv"
-
-
-if not os.path.exists(
-    prediction_file
+if st.button(
+    "Generate AQI Forecast",
+    type="primary",
 ):
 
-    st.warning(
-        "No predictions available yet."
-    )
+    with st.spinner(
+        "Generating forecast..."
+    ):
 
-else:
+        try:
 
-    predictions = pd.read_csv(
-        prediction_file
-    )
+            predictions = predict()
 
-    if "prediction_created_at" in predictions.columns:
-        predictions["prediction_created_at"] = pd.to_datetime(
-            predictions["prediction_created_at"]
-        )
-
-    if "forecast_time" in predictions.columns:
-        predictions["forecast_time"] = pd.to_datetime(
-            predictions["forecast_time"]
-        )
-
-    st.subheader(
-        "AQI Predictions"
-    )
-
-    st.dataframe(
-        predictions,
-        use_container_width=True
-    )
-
-    for horizon in [
-        24,
-        48,
-        72
-    ]:
-
-        row = predictions[
-            predictions[
-                "horizon_hours"
-            ] == horizon
-        ]
-
-        if not row.empty:
-
-            value = row[
-                "predicted_aqi"
-            ].iloc[0]
-
-            st.metric(
-                f"{horizon}-Hour AQI",
-                round(
-                    value,
-                    1
-                )
+            st.success(
+                "Forecast generated successfully."
             )
+
+            st.subheader(
+                "AQI Forecast"
+            )
+
+            cols = st.columns(3)
+
+            for index, horizon in enumerate(
+                [24, 48, 72]
+            ):
+
+                row = predictions[
+                    predictions[
+                        "horizon_hours"
+                    ] == horizon
+                ]
+
+                if row.empty:
+                    continue
+
+                value = row[
+                    "predicted_aqi"
+                ].iloc[0]
+
+                forecast_time = row[
+                    "forecast_time"
+                ].iloc[0]
+
+                with cols[index]:
+
+                    st.metric(
+                        f"{horizon}-Hour AQI",
+                        f"{value:.1f}",
+                    )
+
+                    st.caption(
+                        f"Forecast: {forecast_time}"
+                    )
+
+            st.subheader(
+                "Forecast Details"
+            )
+
+            st.dataframe(
+                predictions,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        except Exception as error:
+
+            st.error(
+                "Unable to generate the forecast."
+            )
+
+            st.exception(error)

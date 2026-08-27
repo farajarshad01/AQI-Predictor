@@ -2,7 +2,7 @@ import os
 
 import hopsworks
 
-from config import (
+from .config import (
     FEATURE_GROUP_NAME,
     FEATURE_GROUP_VERSION
 )

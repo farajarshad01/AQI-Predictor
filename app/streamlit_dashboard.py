@@ -1,6 +1,6 @@
 import streamlit as st
 
-from prediction_pipeline import predict
+from src.prediction_pipeline import predict
 
 
 st.set_page_config(

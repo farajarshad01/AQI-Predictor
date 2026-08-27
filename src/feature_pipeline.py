@@ -31,28 +31,41 @@ def run():
 
     if df.empty:
         raise ValueError(
-            "No recent data returned."
+            "No recent weather/AQI data returned "
+            "after merging API responses."
         )
 
-    df = create_features(
-        df
-    )
+    df = create_features(df)
 
-    df = df.dropna()
-
-    df = get_feature_data(
-        df
-    )
-
-    latest = (
+    df = (
         df
         .sort_values("datetime")
-        .tail(1)
+        .reset_index(drop=True)
     )
+
+    latest = df.tail(1).copy()
 
     if latest.empty:
         raise ValueError(
-            "No valid latest feature row."
+            "No latest row available."
+        )
+
+    latest = get_feature_data(
+        latest
+    )
+
+    missing_features = [
+        feature
+        for feature in latest.columns
+        if feature != "datetime"
+        and latest[feature].isna().any()
+    ]
+
+    if missing_features:
+        raise ValueError(
+            "Latest feature row contains missing "
+            "values: "
+            + ", ".join(missing_features)
         )
 
     feature_group = (

@@ -41,14 +41,12 @@ def create_features(df):
 
     dt = df["datetime"]
 
-    # Time features
     df["year"] = dt.dt.year
     df["month"] = dt.dt.month
     df["day"] = dt.dt.day
     df["day_of_week"] = dt.dt.dayofweek
     df["hour"] = dt.dt.hour
 
-    # AQI change features
     df["aqi_change"] = (
         df["us_aqi"].diff(1)
     )
@@ -62,7 +60,6 @@ def create_features(df):
         )
     )
 
-    # Lag features
     df["aqi_lag_1"] = (
         df["us_aqi"].shift(1)
     )
@@ -75,7 +72,6 @@ def create_features(df):
         df["us_aqi"].shift(24)
     )
 
-    # Leakage-safe rolling features
     previous_aqi = (
         df["us_aqi"].shift(1)
     )
@@ -107,7 +103,13 @@ def create_features(df):
         .mean()
     )
 
-    # Future AQI targets
+    return df
+
+
+def create_targets(df):
+
+    df = df.copy()
+
     df["target_aqi_24"] = (
         df["us_aqi"].shift(-24)
     )
@@ -135,14 +137,19 @@ def validate_features(df):
             f"Missing engineered features: {missing}"
         )
 
-    missing_targets = (
+    return True
+
+
+def validate_targets(df):
+
+    missing = (
         set(TARGETS)
         - set(df.columns)
     )
 
-    if missing_targets:
+    if missing:
         raise ValueError(
-            f"Missing target columns: {missing_targets}"
+            f"Missing target columns: {missing}"
         )
 
     return True
@@ -152,10 +159,16 @@ def get_feature_data(df):
 
     validate_features(df)
 
-    columns = (
-        ["datetime"]
-        + FEATURES
-        + TARGETS
-    )
+    return df[
+        ["datetime"] + FEATURES
+    ].copy()
 
-    return df[columns].copy()
+
+def get_training_data(df):
+
+    validate_features(df)
+    validate_targets(df)
+
+    return df[
+        ["datetime"] + FEATURES + TARGETS
+    ].copy()

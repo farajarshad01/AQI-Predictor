@@ -11,6 +11,8 @@ jobs:
       HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
       BACKFILL_START_DATE: ${{ secrets.BACKFILL_START_DATE }}
       BACKFILL_END_DATE: ${{ secrets.BACKFILL_END_DATE }}
+      LATITUDE: ${{ secrets.LATITUDE }}
+      LONGITUDE: ${{ secrets.LONGITUDE }}
 
     steps:
       - name: Checkout repository

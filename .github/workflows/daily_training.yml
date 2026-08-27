@@ -1,19 +1,19 @@
 name: Daily Training Pipeline
 
 on:
-
   schedule:
-
     - cron: "30 2 * * *"
 
   workflow_dispatch:
-
 
 jobs:
 
   training:
 
     runs-on: ubuntu-latest
+
+    env:
+      HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
 
     steps:
 
@@ -22,21 +22,15 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v5
-
         with:
           python-version: "3.11"
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run training pipeline
-        env:
-
-          LATITUDE: ${{ secrets.LATITUDE }}
-          LONGITUDE: ${{ secrets.LONGITUDE }}
-          HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
-
         run: |
           cd src
           python training_pipeline.py

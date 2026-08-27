@@ -67,26 +67,27 @@ RAW_FEATURES = [
 
 MODEL_CONFIGS = {
     "24h": {
-        "target": "target_24",
+        "name": "aqi_model_24h",
+        "target": "target_aqi_24",
         "iterations": 300,
         "learning_rate": 0.05,
-        "depth": 7,
-        "name": MODEL_24_NAME
+        "depth": 7
     },
 
     "48h": {
-        "target": "target_48",
+        "name": "aqi_model_48h",
+        "target": "target_aqi_48",
         "iterations": 200,
         "learning_rate": 0.05,
-        "depth": 6,
-        "name": MODEL_48_NAME
+        "depth": 6
     },
 
     "72h": {
-        "target": "target_72",
+        "name": "aqi_model_72h",
+        "target": "target_aqi_72",
         "iterations": 200,
         "learning_rate": 0.05,
-        "depth": 6,
-        "name": MODEL_72_NAME
+        "depth": 6
     }
+
 }

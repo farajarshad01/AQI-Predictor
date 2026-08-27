@@ -3,8 +3,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-LATITUDE = float(os.environ["LATITUDE"])
-LONGITUDE = float(os.environ["LONGITUDE"])
+LATITUDE = float(
+    os.getenv("LATITUDE", "0")
+)
+
+LONGITUDE = float(
+    os.getenv("LONGITUDE", "0")
+)
 
 HOPSWORKS_API_KEY = os.environ["HOPSWORKS_API_KEY"]
 

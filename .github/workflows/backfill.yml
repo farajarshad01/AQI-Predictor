@@ -29,5 +29,5 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run historical backfill
-       run: |
-        python -m src.backfill
+        run: |
+          python -m src.backfill

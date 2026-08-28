@@ -1,14 +1,14 @@
-from data_fetch import (
+from .data_fetch import (
     fetch_recent_weather,
     fetch_recent_air_quality
 )
 
-from feature_engineering import (
+from .feature_engineering import (
     create_features,
     get_feature_data
 )
 
-from hopsworksclients import (
+from .hopsworksclients import (
     get_or_create_feature_group
 )
 

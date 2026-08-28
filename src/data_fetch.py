@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 
-from config import LATITUDE, LONGITUDE
+from .config import LATITUDE, LONGITUDE
 
 
 def _request(url, params):

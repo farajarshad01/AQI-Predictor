@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from config import FEATURES, RAW_FEATURES
+from .config import FEATURES, RAW_FEATURES
 
 
 TARGETS = [

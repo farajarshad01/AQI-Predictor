@@ -1,8 +1,9 @@
 import os
+import shutil
 
 import pandas as pd
 import shap
-import shutil
+
 from catboost import CatBoostRegressor
 
 from .config import (
@@ -177,7 +178,8 @@ def get_latest_features():
         )
 
         raise ValueError(
-            f"Latest feature row contains missing values: {missing}"
+            "Latest feature row contains "
+            f"missing values: {missing}"
         )
 
     return latest
@@ -228,10 +230,17 @@ def make_predictions(
 
         predictions.append(
             {
-                "prediction_created_at": prediction_time,
-                "forecast_time": target_time,
-                "horizon_hours": horizon,
-                "predicted_aqi": prediction,
+                "prediction_created_at":
+                    prediction_time,
+
+                "forecast_time":
+                    target_time,
+
+                "horizon_hours":
+                    horizon,
+
+                "predicted_aqi":
+                    prediction,
             }
         )
 
@@ -266,7 +275,9 @@ def create_shap_explanations(
         )
 
         shap_values = (
-            explainer.shap_values(X)
+            explainer.shap_values(
+                X
+            )
         )
 
         if isinstance(
@@ -280,9 +291,14 @@ def create_shap_explanations(
 
         explanation = pd.DataFrame(
             {
-                "feature": FEATURES,
-                "feature_value": X.iloc[0].values,
-                "shap_value": values,
+                "feature":
+                    FEATURES,
+
+                "feature_value":
+                    X.iloc[0].values,
+
+                "shap_value":
+                    values,
             }
         )
 
@@ -307,29 +323,50 @@ def create_shap_explanations(
                 "absolute_impact",
                 ascending=False
             )
+            .head(6)
             .drop(
-                columns=["absolute_impact"]
+                columns=[
+                    "absolute_impact"
+                ]
             )
             .reset_index(
                 drop=True
             )
         )
 
-        explanations[horizon] = explanation
+        explanations[
+            horizon
+        ] = explanation
 
     return explanations
 
 
 def predict():
 
+    print(
+        "Downloading latest models..."
+    )
+
     model_paths = download_models()
+
+    print(
+        "Loading models..."
+    )
 
     models = load_models(
         model_paths
     )
 
+    print(
+        "Fetching latest data..."
+    )
+
     latest_features = (
         get_latest_features()
+    )
+
+    print(
+        "Generating predictions..."
     )
 
     predictions = make_predictions(
@@ -337,20 +374,37 @@ def predict():
         models
     )
 
-    explanations = create_shap_explanations(
-        latest_features,
-        models
+    print(
+        "Generating SHAP explanations..."
     )
 
-    return (
-        predictions,
-        explanations
+    explanations = (
+        create_shap_explanations(
+            latest_features,
+            models
+        )
     )
+
+    return {
+        "predictions":
+            predictions,
+
+        "shap_explanations":
+            explanations
+    }
 
 
 if __name__ == "__main__":
 
-    predictions, explanations = predict()
+    result = predict()
+
+    predictions = result[
+        "predictions"
+    ]
+
+    explanations = result[
+        "shap_explanations"
+    ]
 
     predictions.to_csv(
         "predictions.csv",
@@ -367,16 +421,17 @@ if __name__ == "__main__":
         )
     )
 
-    for horizon, explanation in explanations.items():
+    for horizon, explanation in (
+        explanations.items()
+    ):
 
         print(
-            f"\nTop SHAP features for {horizon}-hour forecast:"
+            f"\nTop SHAP features for "
+            f"{horizon}-hour forecast:"
         )
 
         print(
-            explanation
-            .head(10)
-            .to_string(
+            explanation.to_string(
                 index=False
             )
         )

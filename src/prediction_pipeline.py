@@ -1,11 +1,26 @@
 import os
 
 import pandas as pd
+import shap
 from catboost import CatBoostRegressor
 
-from .config import FEATURES, MODEL_CONFIGS
+from .config import (
+    FEATURES,
+    MODEL_24_NAME,
+    MODEL_48_NAME,
+    MODEL_72_NAME,
+)
+
+from .data_fetch import (
+    fetch_recent_weather,
+    fetch_recent_air_quality,
+)
+
+from .feature_engineering import (
+    create_features,
+)
+
 from .hopsworksclients import (
-    get_feature_group,
     download_latest_model,
 )
 
@@ -13,123 +28,42 @@ from .hopsworksclients import (
 MODEL_DIRECTORY = "downloaded_models"
 
 
-def load_latest_feature():
-    """Load the most recent feature row from Hopsworks."""
-
-    feature_group = get_feature_group()
-
-    df = (
-        feature_group
-        .select_all()
-        .read()
-    )
-
-    if df.empty:
-        raise ValueError(
-            "Feature Store contains no feature rows."
-        )
-
-    if "datetime" not in df.columns:
-        raise ValueError(
-            "Feature Store is missing datetime."
-        )
-
-    df["datetime"] = pd.to_datetime(
-        df["datetime"],
-        utc=True,
-    )
-
-    df = (
-        df
-        .sort_values("datetime")
-        .drop_duplicates(
-            "datetime",
-            keep="last",
-        )
-        .reset_index(drop=True)
-    )
-
-    latest = (
-        df
-        .tail(1)
-        .copy()
-    )
-
-    missing_features = (
-        set(FEATURES)
-        - set(latest.columns)
-    )
-
-    if missing_features:
-        raise ValueError(
-            "Latest feature row is missing "
-            f"features: {missing_features}"
-        )
-
-    missing_values = (
-        latest[FEATURES]
-        .isnull()
-        .any()
-    )
-
-    if missing_values.any():
-
-        missing = (
-            missing_values[
-                missing_values
-            ]
-            .index
-            .tolist()
-        )
-
-        raise ValueError(
-            "Latest feature row contains "
-            f"missing values: {missing}"
-        )
-
-    return latest[
-        ["datetime"] + FEATURES
-    ].copy()
-
-
 def download_models():
-    """Download the latest registered models."""
 
     os.makedirs(
         MODEL_DIRECTORY,
-        exist_ok=True,
+        exist_ok=True
     )
+
+    model_names = {
+        24: MODEL_24_NAME,
+        48: MODEL_48_NAME,
+        72: MODEL_72_NAME,
+    }
 
     model_paths = {}
 
-    for horizon, config in MODEL_CONFIGS.items():
-
-        model_name = config["name"]
+    for horizon, model_name in model_names.items():
 
         model_directory = os.path.join(
             MODEL_DIRECTORY,
-            f"model_{horizon}",
+            f"model_{horizon}h"
         )
 
         os.makedirs(
             model_directory,
-            exist_ok=True,
+            exist_ok=True
+        )
+
+        download_latest_model(
+            model_name,
+            model_directory
         )
 
         model_path = os.path.join(
             model_directory,
-            "model.cbm",
+            "model.cbm"
         )
-
-        # Reuse the locally downloaded model if it already exists.
-        # Streamlit can therefore avoid downloading models
-        # repeatedly during the same deployment.
-        if not os.path.exists(model_path):
-
-            download_latest_model(
-                model_name,
-                model_directory,
-            )
 
         if not os.path.exists(model_path):
             raise FileNotFoundError(
@@ -141,10 +75,7 @@ def download_models():
     return model_paths
 
 
-def load_models():
-    """Load the latest registered models."""
-
-    model_paths = download_models()
+def load_models(model_paths):
 
     models = {}
 
@@ -161,11 +92,92 @@ def load_models():
     return models
 
 
+def get_latest_features():
+
+    weather = fetch_recent_weather(
+        past_hours=48
+    )
+
+    air_quality = fetch_recent_air_quality(
+        past_hours=48
+    )
+
+    df = weather.merge(
+        air_quality,
+        on="datetime",
+        how="inner"
+    )
+
+    if df.empty:
+        raise ValueError(
+            "No recent weather and air-quality data returned."
+        )
+
+    df = (
+        df
+        .sort_values("datetime")
+        .drop_duplicates(
+            "datetime",
+            keep="last"
+        )
+        .reset_index(
+            drop=True
+        )
+    )
+
+    df = create_features(
+        df
+    )
+
+    latest = (
+        df
+        .sort_values("datetime")
+        .tail(1)
+        .copy()
+    )
+
+    if latest.empty:
+        raise ValueError(
+            "Could not create latest feature row."
+        )
+
+    missing_features = (
+        set(FEATURES)
+        - set(latest.columns)
+    )
+
+    if missing_features:
+        raise ValueError(
+            f"Missing features: {missing_features}"
+        )
+
+    latest = latest[
+        ["datetime"] + FEATURES
+    ]
+
+    if latest[FEATURES].isnull().any().any():
+
+        missing = (
+            latest[FEATURES]
+            .columns[
+                latest[FEATURES]
+                .isnull()
+                .any()
+            ]
+            .tolist()
+        )
+
+        raise ValueError(
+            f"Latest feature row contains missing values: {missing}"
+        )
+
+    return latest
+
+
 def make_predictions(
     latest_features,
-    models,
+    models
 ):
-    """Generate 24h, 48h and 72h AQI forecasts."""
 
     X = latest_features[
         FEATURES
@@ -180,15 +192,10 @@ def make_predictions(
     predictions = []
 
     for horizon in [
-        "24h",
-        "48h",
-        "72h",
+        24,
+        48,
+        72
     ]:
-
-        if horizon not in models:
-            raise ValueError(
-                f"Model not loaded: {horizon}"
-            )
 
         model = models[
             horizon
@@ -198,40 +205,24 @@ def make_predictions(
             model.predict(X)[0]
         )
 
-        # AQI cannot be negative.
         prediction = max(
-            0.0,
-            prediction,
+            0,
+            prediction
         )
 
-        horizon_hours = int(
-            horizon.replace(
-                "h",
-                "",
-            )
-        )
-
-        forecast_time = (
+        target_time = (
             prediction_time
             + pd.Timedelta(
-                hours=horizon_hours,
+                hours=horizon
             )
         )
 
         predictions.append(
             {
-                "prediction_created_at": (
-                    prediction_time
-                ),
-                "forecast_time": (
-                    forecast_time
-                ),
-                "horizon_hours": (
-                    horizon_hours
-                ),
-                "predicted_aqi": (
-                    prediction
-                ),
+                "prediction_created_at": prediction_time,
+                "forecast_time": target_time,
+                "horizon_hours": horizon,
+                "predicted_aqi": prediction,
             }
         )
 
@@ -240,49 +231,114 @@ def make_predictions(
     )
 
 
+def create_shap_explanation(
+    latest_features,
+    models
+):
+
+    X = latest_features[
+        FEATURES
+    ]
+
+    explanations = {}
+
+    for horizon in [
+        24,
+        48,
+        72
+    ]:
+
+        model = models[
+            horizon
+        ]
+
+        explainer = shap.TreeExplainer(
+            model
+        )
+
+        shap_values = explainer.shap_values(
+            X
+        )
+
+        if isinstance(
+            shap_values,
+            list
+        ):
+            shap_values = shap_values[0]
+
+        values = shap_values[0]
+
+        explanation = pd.DataFrame(
+            {
+                "feature": FEATURES,
+                "feature_value": X.iloc[0].values,
+                "shap_value": values,
+            }
+        )
+
+        explanation["impact"] = explanation[
+            "shap_value"
+        ].apply(
+            lambda value:
+            "Increases AQI"
+            if value > 0
+            else "Decreases AQI"
+        )
+
+        explanation["abs_shap_value"] = (
+            explanation["shap_value"]
+            .abs()
+        )
+
+        explanation = (
+            explanation
+            .sort_values(
+                "abs_shap_value",
+                ascending=False
+            )
+            .drop(
+                columns=["abs_shap_value"]
+            )
+            .reset_index(
+                drop=True
+            )
+        )
+
+        explanations[horizon] = explanation
+
+    return explanations
+
+
 def predict():
-    """
-    Complete inference operation.
-
-    Loads the latest feature row, loads the latest
-    registered models, and returns forecasts.
-    """
-
-    latest_features = (
-        load_latest_feature()
-    )
-
-    models = load_models()
-
-    return make_predictions(
-        latest_features,
-        models,
-    )
-
-
-def run():
-    """CLI entry point for local/manual testing."""
 
     print(
-        "Loading latest feature row..."
+        "Downloading latest models..."
+    )
+
+    model_paths = download_models()
+
+    print(
+        "Loading models..."
+    )
+
+    models = load_models(
+        model_paths
+    )
+
+    print(
+        "Fetching latest data..."
     )
 
     latest_features = (
-        load_latest_feature()
+        get_latest_features()
     )
 
     print(
         "Latest feature timestamp:",
         latest_features[
             "datetime"
-        ].iloc[0],
+        ].iloc[0]
     )
-
-    print(
-        "Loading registered models..."
-    )
-
-    models = load_models()
 
     print(
         "Generating predictions..."
@@ -290,7 +346,28 @@ def run():
 
     predictions = make_predictions(
         latest_features,
-        models,
+        models
+    )
+
+    print(
+        "Generating SHAP explanations..."
+    )
+
+    explanations = create_shap_explanation(
+        latest_features,
+        models
+    )
+
+    return predictions, explanations
+
+
+if __name__ == "__main__":
+
+    predictions, explanations = predict()
+
+    predictions.to_csv(
+        "predictions.csv",
+        index=False
     )
 
     print(
@@ -299,12 +376,18 @@ def run():
 
     print(
         predictions.to_string(
-            index=False,
+            index=False
         )
     )
 
-    return predictions
+    for horizon, explanation in explanations.items():
 
+        print(
+            f"\nTop SHAP features for {horizon}-hour forecast:"
+        )
 
-if __name__ == "__main__":
-    run()
+        print(
+            explanation.head(10).to_string(
+                index=False
+            )
+        )

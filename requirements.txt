@@ -10,3 +10,4 @@ streamlit
 python-dotenv
 confluent-kafka
 shap
+plotly

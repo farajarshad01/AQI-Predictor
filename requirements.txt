@@ -9,3 +9,4 @@ hopsworks
 streamlit
 python-dotenv
 confluent-kafka
+shap

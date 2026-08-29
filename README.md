@@ -1,6 +1,8 @@
 # AQI Predictor
 
-An automated machine learning system for forecasting Air Quality Index (AQI) for the next 24, 48, and 72 hours.
+AQI Predictor is an end-to-end machine learning system that forecasts **Air Quality Index (AQI)** for **Gujranwala, Punjab, Pakistan**, with predictions at **24, 48, and 72 hours**.
+
+The project combines real-time environmental data, automated ML pipelines, cloud-based feature and model management, and explainable AI into a single forecasting application.
 
 ## Overview
 
@@ -15,71 +17,98 @@ The project:
 - Automates pipelines using GitHub Actions
 - Displays predictions through a Streamlit dashboard
 
-## Project Structure
+## Tech Stack 
+**Python**  | 
+**Pandas**  | 
+**NumPy**  | 
+**Scikit-learn** |
+**CatBoost** | **SHAP** |
+**Hopsworks** |
+**Streamlit** |
+**Plotly** |
+**GitHub Actions** |
 
-AQI Forecasting/
-│
-├── .github/
-│   └── workflows/
-│       ├── hourly_features.yml
-│       └── daily_training.yml
-│
-├── app/
-│   └── streamlit_dashboard.py
-│
-├── src/
-│   ├── __init__.py
-│   ├── backfill.py
-│   ├── config.py
-│   ├── data_fetch.py
-│   ├── feature_engineering.py
-│   ├── feature_pipeline.py
-│   ├── hopsworksclients.py
-│   ├── prediction_pipeline.py
-│   └── training_pipeline.py
-│
-├── .env.example
-├── .gitignore
-├── README.md
-└── requirements.txt
 
-Setup
+## Project Architecture
 
-Install dependencies:
+```text
+                Open-Meteo
+                    │
+                    ▼
+             Data Collection
+                    │
+                    ▼
+          Feature Engineering
+                    │
+                    ▼
+          Hopsworks Feature Store
+                    │
+                    ▼
+             CatBoost Models
+                    │
+             ┌──────┼──────┐
+             ▼      ▼      ▼
+            24h    48h    72h
+             │      │      │
+             └──────┼──────┘
+                    ▼
+             SHAP Explanations
+                    │
+                    ▼
+            Streamlit Dashboard
+```
 
+## Machine Learning
+
+Three CatBoost regression models are trained for different forecasting horizons:
+
+- 24-hour
+- 48-hour
+- 72-hour
+
+Models are evaluated using MAE, RMSE, and R², then trained on the available data and registered in the Hopsworks Model Registry.
+
+SHAP provides feature-level explanations, showing which environmental and historical factors are contributing to each AQI prediction.
+
+## MLOps
+
+The project uses GitHub Actions to automate the ML workflow:
+
+### Data Backfill → Feature Pipeline → Model Training → Model Registration
+
+Hopsworks provides persistent storage for the feature data and production models, while the Streamlit application retrieves the latest data and registered models when a forecast is requested.
+
+## Dashboard
+
+The Streamlit application provides:
+
+- 24/48/72-hour forecast cards
+- AQI health-risk classification
+- Forecast trend visualization
+- SHAP-based model explanations
+- On-demand prediction generation
+- Location-specific forecasting for Gujranwala
+
+## Setup
+
+Install the dependencies:
+
+```bash
+git clone <repository-url>
+cd aqi-predictor
 pip install -r requirements.txt
-
-Create a .env file using .env.example and add the required API credentials.
-
-Run
-
-Feature pipeline:
-
-python src/feature_pipeline.py
-
-Training pipeline:
-
-python src/training_pipeline.py
-
-Prediction pipeline:
-
-python src/prediction_pipeline.py
-
-Dashboard:
-
 streamlit run app/streamlit_dashboard.py
-Automation
+```
+### Configure the required environment variables:
+```
+LATITUDE
+LONGITUDE
+HOPSWORKS_API_KEY
+```
+## Location
 
-GitHub Actions runs:
+Gujranwala, Punjab, Pakistan
 
-Feature updates hourly
-Model training daily
-Models
-
-The system uses CatBoost regression models for:
-
-24-hour AQI forecasting
-48-hour AQI forecasting
-72-hour AQI forecasting
+The system can be adapted to other locations by changing the configured coordinates and retraining the models with the corresponding environmental data.
 
 See the project report for detailed methodology, feature engineering, experiments, model evaluation, and results.

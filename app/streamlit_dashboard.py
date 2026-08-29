@@ -1,6 +1,18 @@
-import pandas as pd
+import os
+import sys
+
+ROOT_DIR = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    )
+)
+
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
 import plotly.graph_objects as go
 import streamlit as st
+import pandas as pd
 
 from src.prediction_pipeline import predict
 

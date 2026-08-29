@@ -66,6 +66,7 @@ def download_models():
         )
 
         if not os.path.exists(model_path):
+
             raise FileNotFoundError(
                 f"Model file not found: {model_path}"
             )
@@ -109,6 +110,7 @@ def get_latest_features():
     )
 
     if df.empty:
+
         raise ValueError(
             "No recent weather and air-quality data returned."
         )
@@ -137,6 +139,7 @@ def get_latest_features():
     )
 
     if latest.empty:
+
         raise ValueError(
             "Could not create latest feature row."
         )
@@ -147,6 +150,7 @@ def get_latest_features():
     )
 
     if missing_features:
+
         raise ValueError(
             f"Missing features: {missing_features}"
         )
@@ -231,7 +235,7 @@ def make_predictions(
     )
 
 
-def create_shap_explanation(
+def create_shap_explanations(
     latest_features,
     models
 ):
@@ -256,14 +260,15 @@ def create_shap_explanation(
             model
         )
 
-        shap_values = explainer.shap_values(
-            X
+        shap_values = (
+            explainer.shap_values(X)
         )
 
         if isinstance(
             shap_values,
             list
         ):
+
             shap_values = shap_values[0]
 
         values = shap_values[0]
@@ -276,16 +281,17 @@ def create_shap_explanation(
             }
         )
 
-        explanation["impact"] = explanation[
-            "shap_value"
-        ].apply(
-            lambda value:
-            "Increases AQI"
-            if value > 0
-            else "Decreases AQI"
+        explanation["impact"] = (
+            explanation["shap_value"]
+            .apply(
+                lambda value:
+                "Increases AQI"
+                if value > 0
+                else "Decreases AQI"
+            )
         )
 
-        explanation["abs_shap_value"] = (
+        explanation["absolute_impact"] = (
             explanation["shap_value"]
             .abs()
         )
@@ -293,11 +299,11 @@ def create_shap_explanation(
         explanation = (
             explanation
             .sort_values(
-                "abs_shap_value",
+                "absolute_impact",
                 ascending=False
             )
             .drop(
-                columns=["abs_shap_value"]
+                columns=["absolute_impact"]
             )
             .reset_index(
                 drop=True
@@ -311,37 +317,14 @@ def create_shap_explanation(
 
 def predict():
 
-    print(
-        "Downloading latest models..."
-    )
-
     model_paths = download_models()
-
-    print(
-        "Loading models..."
-    )
 
     models = load_models(
         model_paths
     )
 
-    print(
-        "Fetching latest data..."
-    )
-
     latest_features = (
         get_latest_features()
-    )
-
-    print(
-        "Latest feature timestamp:",
-        latest_features[
-            "datetime"
-        ].iloc[0]
-    )
-
-    print(
-        "Generating predictions..."
     )
 
     predictions = make_predictions(
@@ -349,16 +332,15 @@ def predict():
         models
     )
 
-    print(
-        "Generating SHAP explanations..."
-    )
-
-    explanations = create_shap_explanation(
+    explanations = create_shap_explanations(
         latest_features,
         models
     )
 
-    return predictions, explanations
+    return (
+        predictions,
+        explanations
+    )
 
 
 if __name__ == "__main__":
@@ -387,7 +369,9 @@ if __name__ == "__main__":
         )
 
         print(
-            explanation.head(10).to_string(
+            explanation
+            .head(10)
+            .to_string(
                 index=False
             )
         )

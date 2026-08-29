@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import shap
+import shutil
 from catboost import CatBoostRegressor
 
 from .config import (
@@ -29,6 +30,9 @@ MODEL_DIRECTORY = "downloaded_models"
 
 
 def download_models():
+
+    if os.path.exists(MODEL_DIRECTORY):
+        shutil.rmtree(MODEL_DIRECTORY)
 
     os.makedirs(
         MODEL_DIRECTORY,

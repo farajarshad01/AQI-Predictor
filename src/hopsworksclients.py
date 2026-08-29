@@ -100,8 +100,7 @@ def get_latest_model(
 
 def download_latest_model(
     model_name,
-    local_path,
-    overwrite=True
+    local_path
 ):
 
     model = get_latest_model(
@@ -109,8 +108,7 @@ def download_latest_model(
     )
 
     model.download(
-    local_path=local_path,
-    overwrite=overwrite
-)
+        local_path=local_path
+    )
 
     return model

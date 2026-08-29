@@ -42,7 +42,7 @@ def download_models():
     model_names = {
         24: MODEL_24_NAME,
         48: MODEL_48_NAME,
-        72: MODEL_72_NAME,
+        72: MODEL_72_NAME
     }
 
     model_paths = {}
@@ -69,8 +69,9 @@ def download_models():
             "model.cbm"
         )
 
-        if not os.path.exists(model_path):
-
+        if not os.path.exists(
+            model_path
+        ):
             raise FileNotFoundError(
                 f"Model file not found: {model_path}"
             )

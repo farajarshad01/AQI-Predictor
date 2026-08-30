@@ -436,19 +436,7 @@ if "forecast_result" in st.session_state:
         with cards[index]:
 
             st.markdown(
-                f"""
-                <div class="forecast-card">
-
-                    <div class="forecast-horizon">
-                        {horizon}-Hour Forecast
-                    </div>
-
-                    <div class="forecast-value">
-                        {value:.1f}
-                    </div>
-
-                </div>
-                """,
+                f"""<div class="forecast-card"><div class="forecast-horizon">{horizon}-Hour Forecast</div><div class="forecast-value">{value:.1f}</div></div>""",
                 unsafe_allow_html=True
             )
 
@@ -614,58 +602,20 @@ if "forecast_result" in st.session_state:
         with health_columns[index]:
 
             st.markdown(
-                f"""
-                <div class="info-card">
-
-                    <div style="
-                        font-size:0.78rem;
-                        font-weight:700;
-                        color:{TEXT_COLOR};
-                        margin-bottom:0.7rem;
-                    ">
-                        {horizon}-HOUR OUTLOOK
-                    </div>
-
-                    <div style="
-                        font-size:1.5rem;
-                        font-weight:700;
-                        color:{TEXT_COLOR};
-                        margin-bottom:0.7rem;
-                    ">
-                        AQI {value:.1f}
-                    </div>
-
-                </div>
-                """,
+                f"""<div class="info-card"><div style="font-size:0.78rem; font-weight:700; color:{TEXT_COLOR}; margin-bottom:0.7rem;">{horizon}-HOUR OUTLOOK</div><div style="font-size:1.5rem; font-weight:700; color:{TEXT_COLOR}; margin-bottom:0.7rem;">AQI {value:.1f}</div></div>""",
                 unsafe_allow_html=True
             )
 
             # Native alert components make sure
             # the labels render instead of exposing HTML.
 
-            if category == "Good":
-
-                st.success(
-                    category
-                )
-
-            elif category == "Moderate":
-
-                st.warning(
-                    category
-                )
-
-            elif category == "Unhealthy for Sensitive Groups":
-
-                st.warning(
-                    category
-                )
-
-            else:
-
-                st.error(
-                    category
-                )
+           if category == "Good":
+            st.success(category)
+           elif category == "Moderate":
+            st.warning(category)
+           else:
+           # This now handles "Unhealthy for Sensitive Groups", "Unhealthy", "Very Unhealthy", and "Hazardous"
+            st.error(category)
 
             st.caption(
                 message

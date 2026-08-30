@@ -26,7 +26,6 @@ VERY_UNHEALTHY_COLOR = "#b91c1c"
 HAZARDOUS_COLOR = "#7f1d1d"
 
 
-
 # Page styling
 
 st.markdown(
@@ -242,7 +241,6 @@ def readable_feature(name):
     )
 
 
-
 # Sidebar
 
 with st.sidebar:
@@ -299,6 +297,7 @@ with st.sidebar:
         """,
         unsafe_allow_html=True
     )
+
 
 # Header
 
@@ -566,6 +565,7 @@ if "forecast_result" in st.session_state:
         use_container_width=True
     )
 
+
     # Health outlook
 
     st.markdown(
@@ -602,24 +602,33 @@ if "forecast_result" in st.session_state:
         with health_columns[index]:
 
             st.markdown(
-                f"""<div class="info-card"><div style="font-size:0.78rem; font-weight:700; color:{TEXT_COLOR}; margin-bottom:0.7rem;">{horizon}-HOUR OUTLOOK</div><div style="font-size:1.5rem; font-weight:700; color:{TEXT_COLOR}; margin-bottom:0.7rem;">AQI {value:.1f}</div></div>""",
+                f"""<div class="info-card">...{horizon}-HOUR OUTLOOK...{value:.1f}...</div>""",
                 unsafe_allow_html=True
             )
 
-            # Native alert components make sure
-            # the labels render instead of exposing HTML.
+            # Native alert components make sure the labels render instead of exposing HTML.
+            if category == "Good":
 
-           if category == "Good":
-            st.success(category)
-           elif category == "Moderate":
-            st.warning(category)
-           else:
-           # This now handles "Unhealthy for Sensitive Groups", "Unhealthy", "Very Unhealthy", and "Hazardous"
-            st.error(category)
+                st.success(
+                    category
+                )
+
+            elif category == "Moderate":
+
+                st.warning(
+                    category
+                )
+
+            else:
+
+                st.error(
+                    category
+                )
 
             st.caption(
                 message
             )
+
 
     # SHAP explanation
 
@@ -788,6 +797,7 @@ if "forecast_result" in st.session_state:
             "SHAP explanation is not available for this forecast."
         )
 
+
     # Forecast data
 
     with st.expander(
@@ -829,6 +839,7 @@ else:
     st.info(
         "Select 'Generate AQI Forecast' to retrieve the latest forecast."
     )
+
 
 # Footer
 

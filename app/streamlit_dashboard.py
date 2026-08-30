@@ -441,36 +441,20 @@ if "forecast_result" in st.session_state:
 
             # Native Streamlit warning box.
             # This guarantees the label renders correctly.
-            if category == "Good":
-
-                st.success(
-                    category
-                )
-
-            elif category == "Moderate":
-
-                st.warning(
-                    category
-                )
-
-            elif category == "Unhealthy for Sensitive Groups":
-
-                st.warning(
-                    category
-                )
-
-            else:
-
-                st.error(
-                    category
-                )
-
-            st.caption(
-                message
-            )
-
-            st.caption(
-                f"Forecast: {forecast_time.strftime('%d %b %Y, %H:%M UTC')}"
+            st.markdown(
+                f"""<div style="
+                    background-color: {category_color};
+                    color: {"#000000" if category in ["Good", "Moderate"] else "#ffffff"};
+                    padding: 0.5rem 0.75rem;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                    text-align: center;
+                    margin-top: 0.6rem;
+                ">
+                    {category}
+                </div>""",
+                unsafe_allow_html=True
             )
 
 

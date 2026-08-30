@@ -18,12 +18,12 @@ BACKGROUND = "#f7f7f7"
 BORDER = "#e5e5e5"
 GRID_COLOR = "#e5e5e5"
 
-GOOD_COLOR = "#15803d"
-MODERATE_COLOR = "#ca8a04"
-SENSITIVE_COLOR = "#ea580c"
-UNHEALTHY_COLOR = "#dc2626"
-VERY_UNHEALTHY_COLOR = "#b91c1c"
-HAZARDOUS_COLOR = "#7f1d1d"
+GOOD_COLOR = "#00E400"
+MODERATE_COLOR = "#FFFF00"
+SENSITIVE_COLOR = "#FF7E00"
+UNHEALTHY_COLOR = "#FF0000"
+VERY_UNHEALTHY_COLOR = "#8F3F97"
+HAZARDOUS_COLOR = "#7E0023"
 
 
 # Page styling
@@ -564,71 +564,6 @@ if "forecast_result" in st.session_state:
         fig,
         use_container_width=True
     )
-
-
-    # Health outlook
-
-    st.markdown(
-        '<div class="section-title">Health Outlook</div>',
-        unsafe_allow_html=True
-    )
-
-    health_columns = st.columns(3)
-
-    for index, horizon in enumerate(
-        [24, 48, 72]
-    ):
-
-        row = predictions[
-            predictions["horizon_hours"] == horizon
-        ]
-
-        if row.empty:
-            continue
-
-        value = float(
-            row["predicted_aqi"].iloc[0]
-        )
-
-        (
-            category,
-            category_color,
-            category_background,
-            message
-        ) = get_aqi_category(
-            value
-        )
-
-        with health_columns[index]:
-
-            st.markdown(
-                f"""<div class="info-card">...{horizon}-HOUR OUTLOOK...{value:.1f}...</div>""",
-                unsafe_allow_html=True
-            )
-
-            # Native alert components make sure the labels render instead of exposing HTML.
-            if category == "Good":
-
-                st.success(
-                    category
-                )
-
-            elif category == "Moderate":
-
-                st.warning(
-                    category
-                )
-
-            else:
-
-                st.error(
-                    category
-                )
-
-            st.caption(
-                message
-            )
-
 
     # SHAP explanation
 

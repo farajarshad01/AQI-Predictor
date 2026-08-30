@@ -245,18 +245,25 @@ st.markdown(
 generate = st.button(
     "Generate Forecast",
     type="primary",
+    use_container_width=True,
 )
 
 
 if generate:
 
-    with st.spinner("Generating AQI forecast..."):
+    with st.spinner(
+        "Generating AQI forecast..."
+    ):
 
         try:
 
             result = predict()
 
             st.session_state["forecast_result"] = result
+
+            st.success(
+                "Forecast generated successfully."
+            )
 
         except Exception as exc:
 
@@ -329,81 +336,79 @@ if "forecast_result" in st.session_state:
     # Forecast cards
 
     st.markdown(
-        '<div class="section-title">AQI Forecast</div>',
-        unsafe_allow_html=True,
+    "## AQI Forecast"
+)
+
+cards = st.columns(3)
+
+for index, horizon in enumerate([24, 48, 72]):
+
+    row = predictions[
+        predictions["horizon_hours"] == horizon
+    ]
+
+    if row.empty:
+        continue
+
+    value = float(
+        row["predicted_aqi"].iloc[0]
     )
 
-    cards = st.columns(
-        3,
-        gap="medium",
+    forecast_time = pd.to_datetime(
+        row["forecast_time"].iloc[0]
     )
 
+    category, text_color, background, message = (
+        get_aqi_category(value)
+    )
 
-    for index, horizon in enumerate(
-        [24, 48, 72]
-    ):
+    with cards[index]:
 
-        row = predictions[
-            predictions["horizon_hours"] == horizon
-        ]
-
-        if row.empty:
-            continue
-
-
-        value = float(
-            row["predicted_aqi"].iloc[0]
+        st.markdown(
+            f"### {horizon}-Hour Forecast"
         )
 
-        forecast_time = pd.to_datetime(
-            row["forecast_time"].iloc[0]
+        st.metric(
+            label="Predicted AQI",
+            value=f"{value:.1f}"
         )
 
+        if category == "Good":
 
-        category, text_color, background, message = (
-            get_aqi_category(value)
-        )
-
-
-        with cards[index]:
-
-            # Use Streamlit native elements for the
-            # important visible card content.
-            st.markdown(
-                f"""
-                <div class="forecast-card">
-
-                    <div class="forecast-horizon">
-                        {horizon}-Hour Forecast
-                    </div>
-
-                    <div class="forecast-value">
-                        {value:.1f}
-                    </div>
-
-                    <span
-                        class="health-box"
-                        style="
-                            color: {text_color};
-                            background: {background};
-                        "
-                    >
-                        {category}
-                    </span>
-
-                    <div class="health-message">
-                        {message}
-                    </div>
-
-                    <div class="forecast-time">
-                        Forecast:
-                        {forecast_time.strftime("%d %b %Y, %H:%M UTC")}
-                    </div>
-
-                </div>
-                """,
-                unsafe_allow_html=True,
+            st.success(
+                f"{category}\n\n{message}"
             )
+
+        elif category == "Moderate":
+
+            st.warning(
+                f"{category}\n\n{message}"
+            )
+
+        elif category == "Unhealthy for Sensitive Groups":
+
+            st.warning(
+                f"{category}\n\n{message}"
+            )
+
+        elif category == "Unhealthy":
+
+            st.error(
+                f"{category}\n\n{message}"
+            )
+
+        else:
+
+            st.error(
+                f"{category}\n\n{message}"
+            )
+
+        st.caption(
+            "Forecast: "
+            + forecast_time.strftime(
+                "%d %b %Y, %H:%M UTC"
+            )
+        )
 
 
     # Forecast chart
@@ -435,10 +440,12 @@ if "forecast_result" in st.session_state:
             mode="lines+markers",
             line=dict(
                 width=3,
-            ),
+                color="#1c1d1f",
+    ),
             marker=dict(
                 size=9,
-            ),
+                color="#1c1d1f",
+    ),
             hovertemplate=(
                 "<b>%{y:.1f} AQI</b>"
                 "<br>%{x}"
@@ -476,66 +483,67 @@ if "forecast_result" in st.session_state:
     )
 
     # Health outlook
-
     st.markdown(
-        '<div class="section-title">Health Outlook</div>',
-        unsafe_allow_html=True,
-    )
-
+    "## Health Outlook"
+)
 
     health_columns = st.columns(3)
 
-
-    for index, horizon in enumerate(
-        [24, 48, 72]
-    ):
+    for index, horizon in enumerate([24, 48, 72]):
 
         row = predictions[
-            predictions["horizon_hours"] == horizon
-        ]
+        predictions["horizon_hours"] == horizon
+    ]
 
-        if row.empty:
-            continue
+    if row.empty:
+        continue
 
+    value = float(
+        row["predicted_aqi"].iloc[0]
+    )
 
-        value = float(
-            row["predicted_aqi"].iloc[0]
+    category, text_color, background, message = (
+        get_aqi_category(value)
+    )
+
+    with health_columns[index]:
+
+        st.markdown(
+            f"### {horizon}-Hour Outlook"
         )
 
-        category, text_color, background, message = (
-            get_aqi_category(value)
+        st.metric(
+            label="Predicted AQI",
+            value=f"{value:.1f}"
         )
 
+        if category == "Good":
 
-        with health_columns[index]:
-
-            st.markdown(
-                f"""
-                <div class="info-card">
-
-                    <div class="info-title">
-                        {horizon}-Hour Outlook
-                    </div>
-
-                    <div
-                        class="health-box"
-                        style="
-                            color: {text_color};
-                            background: {background};
-                        "
-                    >
-                        {category}
-                    </div>
-
-                    <div class="info-text"
-                         style="margin-top:0.8rem;">
-                        {message}
-                    </div>
-
-                </div>
-                """,
-                unsafe_allow_html=True,
+            st.success(
+                category
             )
+
+        elif category == "Moderate":
+
+            st.warning(
+                category
+            )
+
+        elif category == "Unhealthy for Sensitive Groups":
+
+            st.warning(
+                category
+            )
+
+        else:
+
+            st.error(
+                category
+            )
+
+        st.caption(
+            message
+        )
 
 
     # SHAP explanation

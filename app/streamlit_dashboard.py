@@ -307,9 +307,9 @@ else:
         "forecast_result"
     ]
 
-    predictions = result[0]
+    predictions = result["predictions"]
 
-    explanations = result[1]
+explanations = result["shap_explanations"]
 
 
     # Forecast cards

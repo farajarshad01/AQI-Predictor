@@ -1,16 +1,6 @@
-import sys
-from pathlib import Path
-
+import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import streamlit as st
-
-
-ROOT_DIR = Path(__file__).resolve().parents[1]
-
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
 
 from src.prediction_pipeline import predict
 
@@ -18,7 +8,7 @@ from src.prediction_pipeline import predict
 st.set_page_config(
     page_title="Gujranwala AQI Forecast",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
 
@@ -38,100 +28,109 @@ st.markdown(
         padding-bottom: 3rem;
     }
 
-    h1 {
-        color: #172033 !important;
-        font-weight: 700 !important;
+    h1, h2, h3, p, div, span {
+        font-family: Arial, sans-serif;
     }
 
-    h2, h3 {
-        color: #172033 !important;
+    .page-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 0.2rem;
     }
 
-    .location-text {
-        color: #667085;
+    .page-subtitle {
         font-size: 0.95rem;
-        margin-top: -0.5rem;
-        margin-bottom: 0.25rem;
+        color: #667085;
+        margin-bottom: 1.8rem;
     }
 
-    .description-text {
-        color: #667085;
-        font-size: 0.85rem;
-        margin-bottom: 1.5rem;
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #111827;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
     }
 
     .forecast-card {
-        background: white;
+        background: #ffffff;
         border: 1px solid #e4e7ec;
         border-radius: 14px;
-        padding: 22px;
-        min-height: 210px;
+        padding: 1.4rem;
+        min-height: 220px;
         box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
     }
 
     .forecast-horizon {
-        color: #667085;
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         font-weight: 700;
+        color: #667085;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.04em;
     }
 
     .forecast-value {
-        color: #172033;
-        font-size: 2.5rem;
+        font-size: 2.7rem;
         font-weight: 750;
-        margin: 12px 0 8px 0;
+        color: #111827;
+        margin-top: 0.8rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .health-box {
+        display: inline-block;
+        padding: 0.4rem 0.65rem;
+        border-radius: 7px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .health-message {
+        color: #667085;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        margin-top: 0.85rem;
     }
 
     .forecast-time {
         color: #98a2b3;
         font-size: 0.72rem;
-        margin-top: 14px;
+        margin-top: 0.9rem;
     }
 
-    .health-box {
-        border-radius: 8px;
-        padding: 8px 10px;
-        font-size: 0.74rem;
+    .info-card {
+        background: #ffffff;
+        border: 1px solid #e4e7ec;
+        border-radius: 14px;
+        padding: 1.2rem;
+    }
+
+    .info-title {
+        font-size: 1rem;
         font-weight: 700;
-        display: inline-block;
-    }
-
-    .health-message {
-        color: #667085;
-        font-size: 0.78rem;
-        line-height: 1.4;
-        margin-top: 10px;
-    }
-
-    .section-label {
-        color: #172033;
-        font-size: 1.05rem;
-        font-weight: 700;
-        margin-top: 2rem;
+        color: #111827;
         margin-bottom: 0.8rem;
     }
 
-    .explanation-box {
-        background: white;
-        border: 1px solid #e4e7ec;
-        border-radius: 12px;
-        padding: 18px;
+    .info-text {
+        color: #667085;
+        font-size: 0.83rem;
+        line-height: 1.5;
     }
 
     .footer {
-        color: #98a2b3;
         text-align: center;
-        font-size: 0.7rem;
+        color: #98a2b3;
+        font-size: 0.72rem;
         margin-top: 3rem;
     }
 
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
-
 
 # AQI classification
 
@@ -142,7 +141,7 @@ def get_aqi_category(aqi):
             "Good",
             "#027A48",
             "#ECFDF3",
-            "Air quality is satisfactory."
+            "Air quality is considered satisfactory.",
         )
 
     if aqi <= 100:
@@ -150,7 +149,7 @@ def get_aqi_category(aqi):
             "Moderate",
             "#B54708",
             "#FFFAEB",
-            "Air quality is acceptable. Sensitive individuals may experience minor effects."
+            "Air quality is acceptable; unusually sensitive people may experience minor effects.",
         )
 
     if aqi <= 150:
@@ -158,87 +157,61 @@ def get_aqi_category(aqi):
             "Unhealthy for Sensitive Groups",
             "#C4320A",
             "#FFF4ED",
-            "Sensitive groups may experience health effects."
+            "Sensitive groups may experience health effects.",
         )
 
     if aqi <= 200:
         return (
             "Unhealthy",
-            "#D92D20",
+            "#B42318",
             "#FEF3F2",
-            "Everyone may begin to experience health effects."
+            "Everyone may begin to experience health effects.",
         )
 
     if aqi <= 300:
         return (
             "Very Unhealthy",
-            "#B42318",
+            "#912018",
             "#FEE4E2",
-            "Health alert: the risk of health effects is increased."
+            "Health alert: the risk of health effects is increased.",
         )
 
     return (
         "Hazardous",
         "#7A271A",
-        "#FDEAD7",
-        "Health warning of emergency conditions."
+        "#FDECEC",
+        "Health warning of emergency conditions.",
     )
 
 
-# Feature display names
+# Feature names
 
 FEATURE_LABELS = {
-
     "temperature_2m": "Temperature",
-
     "relative_humidity_2m": "Relative Humidity",
-
     "wind_speed_10m": "Wind Speed",
-
     "surface_pressure": "Surface Pressure",
-
     "precipitation": "Precipitation",
-
     "cloud_cover": "Cloud Cover",
-
     "pm10": "PM10",
-
     "pm2_5": "PM2.5",
-
     "carbon_monoxide": "Carbon Monoxide",
-
     "nitrogen_dioxide": "Nitrogen Dioxide",
-
     "sulphur_dioxide": "Sulphur Dioxide",
-
     "ozone": "Ozone",
-
     "us_aqi": "Previous AQI",
-
     "aqi_change": "AQI Change",
-
     "aqi_change_rate": "AQI Change Rate",
-
-    "aqi_lag_1": "AQI — 1 Hour Lag",
-
-    "aqi_lag_12": "AQI — 12 Hour Lag",
-
-    "aqi_lag_24": "AQI — 24 Hour Lag",
-
-    "aqi_rolling_6": "AQI — 6 Hour Average",
-
-    "aqi_rolling_12": "AQI — 12 Hour Average",
-
-    "aqi_rolling_24": "AQI — 24 Hour Average",
-
+    "aqi_lag_1": "AQI - 1 Hour Lag",
+    "aqi_lag_12": "AQI - 12 Hour Lag",
+    "aqi_lag_24": "AQI - 24 Hour Lag",
+    "aqi_rolling_6": "AQI - 6 Hour Average",
+    "aqi_rolling_12": "AQI - 12 Hour Average",
+    "aqi_rolling_24": "AQI - 24 Hour Average",
     "year": "Year",
-
     "month": "Month",
-
     "day": "Day",
-
     "day_of_week": "Day of Week",
-
     "hour": "Hour",
 }
 
@@ -247,38 +220,37 @@ def readable_feature(name):
 
     return FEATURE_LABELS.get(
         name,
-        name.replace("_", " ").title()
+        str(name).replace("_", " ").title(),
     )
-
 
 # Header
 
-st.title(
-    "Air Quality Forecast"
+st.markdown(
+    '<div class="page-title">Air Quality Forecast</div>',
+    unsafe_allow_html=True,
 )
 
 st.markdown(
-    '<div class="location-text">Gujranwala, Punjab, Pakistan</div>',
-    unsafe_allow_html=True
+    """
+    <div class="page-subtitle">
+        Gujranwala, Punjab, Pakistan · Machine-learning AQI forecast
+        for the next 72 hours
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
-
-st.markdown(
-    '<div class="description-text">Machine-learning AQI forecasts for the next 24, 48 and 72 hours.</div>',
-    unsafe_allow_html=True
-)
-
 
 # Generate forecast
 
 generate = st.button(
-    "Generate AQI Forecast",
-    type="primary"
+    "Generate Forecast",
+    type="primary",
 )
 
 
 if generate:
 
-    with st.spinner("Generating forecast..."):
+    with st.spinner("Generating AQI forecast..."):
 
         try:
 
@@ -292,41 +264,82 @@ if generate:
                 f"Unable to generate forecast: {exc}"
             )
 
+# Forecast results
 
-# Dashboard
+if "forecast_result" in st.session_state:
 
-if "forecast_result" not in st.session_state:
+    result = st.session_state["forecast_result"]
 
-    st.info(
-        "Select Generate AQI Forecast to retrieve the latest forecast."
-    )
 
-else:
+    # Support both possible return formats
 
-    result = st.session_state[
-        "forecast_result"
-    ]
+    if isinstance(result, dict):
 
-    predictions = result["predictions"]
+        predictions = result.get(
+            "predictions"
+        )
 
-    explanations = result["shap_explanations"]
+        explanations = result.get(
+            "shap_explanations",
+            result.get(
+                "explanations",
+                {}
+            ),
+        )
 
+    elif isinstance(result, (tuple, list)):
+
+        predictions = result[0]
+
+        explanations = (
+            result[1]
+            if len(result) > 1
+            else {}
+        )
+
+    else:
+
+        st.error(
+            "Unexpected prediction result format."
+        )
+
+        st.stop()
+
+
+    if predictions is None:
+
+        st.error(
+            "No predictions were returned."
+        )
+
+        st.stop()
+
+
+    # Make sure predictions are a DataFrame
+
+    if not isinstance(
+        predictions,
+        pd.DataFrame
+    ):
+
+        predictions = pd.DataFrame(
+            predictions
+        )
 
     # Forecast cards
 
     st.markdown(
-        '<div class="section-label">Forecast</div>',
-        unsafe_allow_html=True
+        '<div class="section-title">AQI Forecast</div>',
+        unsafe_allow_html=True,
     )
 
-    card_columns = st.columns(
+    cards = st.columns(
         3,
-        gap="medium"
+        gap="medium",
     )
 
 
-    for column, horizon in zip(
-        card_columns,
+    for index, horizon in enumerate(
         [24, 48, 72]
     ):
 
@@ -337,6 +350,7 @@ else:
         if row.empty:
             continue
 
+
         value = float(
             row["predicted_aqi"].iloc[0]
         )
@@ -345,13 +359,16 @@ else:
             row["forecast_time"].iloc[0]
         )
 
+
         category, text_color, background, message = (
             get_aqi_category(value)
         )
 
 
-        with column:
+        with cards[index]:
 
+            # Use Streamlit native elements for the
+            # important visible card content.
             st.markdown(
                 f"""
                 <div class="forecast-card">
@@ -364,11 +381,13 @@ else:
                         {value:.1f}
                     </div>
 
-                    <span class="health-box"
-                          style="
-                              color:{text_color};
-                              background:{background};
-                          ">
+                    <span
+                        class="health-box"
+                        style="
+                            color: {text_color};
+                            background: {background};
+                        "
+                    >
                         {category}
                     </span>
 
@@ -383,142 +402,170 @@ else:
 
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
 
 
-    # Forecast trend
+    # Forecast chart
 
     st.markdown(
-        '<div class="section-label">Forecast Trend</div>',
-        unsafe_allow_html=True
+        '<div class="section-title">Forecast Trend</div>',
+        unsafe_allow_html=True,
     )
 
 
-    trend = go.Figure()
+    chart_data = predictions.copy()
+
+    chart_data["forecast_time"] = pd.to_datetime(
+        chart_data["forecast_time"]
+    )
+
+    chart_data = chart_data.sort_values(
+        "horizon_hours"
+    )
 
 
-    trend.add_trace(
+    fig = go.Figure()
+
+
+    fig.add_trace(
         go.Scatter(
-            x=predictions["forecast_time"],
-            y=predictions["predicted_aqi"],
+            x=chart_data["forecast_time"],
+            y=chart_data["predicted_aqi"],
             mode="lines+markers",
             line=dict(
-                width=3
+                width=3,
             ),
             marker=dict(
-                size=9
+                size=9,
             ),
             hovertemplate=(
-                "AQI: %{y:.1f}"
+                "<b>%{y:.1f} AQI</b>"
                 "<br>%{x}"
                 "<extra></extra>"
-            )
+            ),
         )
     )
 
 
-    trend.update_layout(
-        height=360,
+    fig.update_layout(
+        height=350,
         margin=dict(
-            l=30,
+            l=20,
             r=20,
             t=20,
-            b=30
+            b=20,
         ),
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        showlegend=False,
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
         xaxis=dict(
             title="Forecast Time",
-            showgrid=False
+            showgrid=False,
         ),
         yaxis=dict(
-            title="Predicted AQI",
+            title="AQI",
             gridcolor="#eaecf0",
-            zeroline=False
-        )
+        ),
+        showlegend=False,
     )
 
 
     st.plotly_chart(
-        trend,
-        use_container_width=True
+        fig,
+        use_container_width=True,
     )
 
-
-    # Forecast comparison
+    # Health outlook
 
     st.markdown(
-        '<div class="section-label">Forecast Summary</div>',
-        unsafe_allow_html=True
+        '<div class="section-title">Health Outlook</div>',
+        unsafe_allow_html=True,
     )
 
 
-    summary = predictions[
-        [
-            "horizon_hours",
-            "forecast_time",
-            "predicted_aqi"
+    health_columns = st.columns(3)
+
+
+    for index, horizon in enumerate(
+        [24, 48, 72]
+    ):
+
+        row = predictions[
+            predictions["horizon_hours"] == horizon
         ]
-    ].copy()
+
+        if row.empty:
+            continue
 
 
-    summary["horizon_hours"] = (
-        summary["horizon_hours"]
-        .astype(str)
-        + " hours"
-    )
-
-
-    summary["forecast_time"] = (
-        pd.to_datetime(
-            summary["forecast_time"]
+        value = float(
+            row["predicted_aqi"].iloc[0]
         )
-        .dt.strftime(
-            "%d %b %Y, %H:%M UTC"
+
+        category, text_color, background, message = (
+            get_aqi_category(value)
         )
-    )
 
 
-    summary["predicted_aqi"] = (
-        summary["predicted_aqi"]
-        .round(1)
-    )
+        with health_columns[index]:
 
+            st.markdown(
+                f"""
+                <div class="info-card">
 
-    summary.columns = [
-        "Forecast Horizon",
-        "Forecast Time",
-        "Predicted AQI"
-    ]
+                    <div class="info-title">
+                        {horizon}-Hour Outlook
+                    </div>
 
+                    <div
+                        class="health-box"
+                        style="
+                            color: {text_color};
+                            background: {background};
+                        "
+                    >
+                        {category}
+                    </div>
 
-    st.dataframe(
-        summary,
-        use_container_width=True,
-        hide_index=True
-    )
+                    <div class="info-text"
+                         style="margin-top:0.8rem;">
+                        {message}
+                    </div>
+
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 
     # SHAP explanation
 
     st.markdown(
-        '<div class="section-label">Model Explanation</div>',
-        unsafe_allow_html=True
+        '<div class="section-title">Model Explanation</div>',
+        unsafe_allow_html=True,
     )
 
 
-    st.caption(
-        "SHAP explains which features influenced each model prediction. "
-        "Positive values increase the predicted AQI; negative values decrease it."
+    st.markdown(
+        """
+        <div class="info-text">
+            SHAP explains which features contributed most to
+            each model's AQI prediction. Positive values push
+            the prediction higher, while negative values push
+            it lower.
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
+
+
+    st.write("")
 
 
     selected_horizon = st.selectbox(
-        "Select forecast horizon",
+        "Forecast horizon",
         [24, 48, 72],
-        format_func=lambda x: f"{x}-hour forecast"
+        format_func=lambda x: f"{x}-hour forecast",
     )
 
 
@@ -529,123 +576,86 @@ else:
 
     if explanation is not None:
 
+        if not isinstance(
+            explanation,
+            pd.DataFrame
+        ):
+
+            explanation = pd.DataFrame(
+                explanation
+            )
+
+
         explanation = explanation.copy()
 
 
-        explanation["feature"] = (
-            explanation["feature"]
-            .apply(readable_feature)
-        )
+        if "feature" in explanation.columns:
 
-
-        explanation = (
-            explanation
-            .sort_values(
-                "shap_value"
+            explanation["feature"] = (
+                explanation["feature"]
+                .apply(readable_feature)
             )
-        )
 
 
-        shap_chart = go.Figure()
+        if "shap_value" not in explanation.columns:
 
+            st.info(
+                "SHAP values are not available."
+            )
 
-        shap_chart.add_trace(
-            go.Bar(
-                x=explanation["shap_value"],
-                y=explanation["feature"],
-                orientation="h",
-                hovertemplate=(
-                    "%{y}"
-                    "<br>SHAP: %{x:.3f}"
-                    "<extra></extra>"
+        else:
+
+            explanation = (
+                explanation
+                .sort_values(
+                    "shap_value"
                 )
             )
-        )
 
 
-        shap_chart.update_layout(
-            height=380,
-            margin=dict(
-                l=20,
-                r=20,
-                t=20,
-                b=30
-            ),
-            paper_bgcolor="white",
-            plot_bgcolor="white",
-            showlegend=False,
-            xaxis=dict(
-                title="SHAP Contribution",
-                zeroline=True,
-                gridcolor="#eaecf0"
-            ),
-            yaxis=dict(
-                title=""
+            fig_shap = go.Figure()
+
+
+            fig_shap.add_trace(
+                go.Bar(
+                    x=explanation["shap_value"],
+                    y=explanation["feature"],
+                    orientation="h",
+                    hovertemplate=(
+                        "<b>%{y}</b>"
+                        "<br>SHAP contribution: %{x:.3f}"
+                        "<extra></extra>"
+                    ),
+                )
             )
-        )
 
 
-        st.plotly_chart(
-            shap_chart,
-            use_container_width=True
-        )
+            fig_shap.update_layout(
+                height=400,
+                margin=dict(
+                    l=20,
+                    r=20,
+                    t=20,
+                    b=20,
+                ),
+                paper_bgcolor="#ffffff",
+                plot_bgcolor="#ffffff",
+                xaxis=dict(
+                    title="SHAP Contribution",
+                    gridcolor="#eaecf0",
+                    zeroline=True,
+                ),
+                yaxis=dict(
+                    title="",
+                ),
+                showlegend=False,
+            )
 
 
-        # SHAP table
-
-        table = explanation.copy()
-
-
-        table["feature"] = (
-            table["feature"]
-        )
-
-
-        table["feature_value"] = (
-            table["feature_value"]
-            .round(2)
-        )
-
-
-        table["shap_value"] = (
-            table["shap_value"]
-            .round(3)
-        )
-
-
-        table["impact"] = table[
-            "shap_value"
-        ].apply(
-            lambda value:
-            "Increases AQI"
-            if value > 0
-            else "Decreases AQI"
-        )
-
-
-        table = table[
-            [
-                "feature",
-                "feature_value",
-                "shap_value",
-                "impact"
-            ]
-        ]
-
-
-        table.columns = [
-            "Feature",
-            "Current Value",
-            "SHAP Contribution",
-            "Impact"
-        ]
-
-
-        st.dataframe(
-            table,
-            use_container_width=True,
-            hide_index=True
-        )
+            st.plotly_chart(
+                fig_shap,
+                use_container_width=True,
+            )
 
 
     else:
@@ -654,15 +664,36 @@ else:
             "SHAP explanation is not available for this forecast."
         )
 
+# Initial state
+
+else:
+
+    st.markdown(
+        """
+        <div class="info-card">
+
+            <div class="info-title">
+                Gujranwala Air Quality
+            </div>
+
+            <div class="info-text">
+                Generate a forecast to view the predicted AQI
+                for 24, 48, and 72 hours, together with the
+                model explanation and forecast trend.
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # Footer
 
 st.markdown(
     """
     <div class="footer">
-        Gujranwala Air Quality Forecast ·
-        CatBoost · Hopsworks · SHAP
+        Gujranwala AQI Forecast · CatBoost · Hopsworks · SHAP
     </div>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )

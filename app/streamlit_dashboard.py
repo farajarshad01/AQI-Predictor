@@ -34,7 +34,6 @@ BORDER = "#e5e5e5"
 GRID_COLOR = "#e5e5e5"
 
 CHART_BLUE = "#02A4D3"
-INFO_BLUE = "#cbcbcb"  # Sidebar color changed to user-requested #cbcbcb
 
 GOOD_COLOR = "#00E400"
 MODERATE_COLOR = "#FFFF00"
@@ -84,21 +83,11 @@ st.markdown(
         background: transparent;
     }}
 
-    /* Sidebar: changed to #cbcbcb, more rounded (larger corner radius) and a bit narrower */
     [data-testid="stSidebar"] {{
-        background-color: {INFO_BLUE} !important;
-        border-right: 1px solid rgba(0,0,0,0.06);
-        border-top-right-radius: 28px;
-        border-bottom-right-radius: 28px;
-        padding-top: 1.4rem;
-        padding-left: 1.4rem;
-        padding-right: 1.4rem;
-        width: 300px !important;
-        min-width: 260px !important;
-        max-width: 320px !important;
+        background-color: {WHITE};
+        border-right: 1px solid {BORDER};
     }}
 
-    /* Force sidebar text to dark for contrast on the light background */
     [data-testid="stSidebar"] * {{
         color: {TEXT_COLOR} !important;
     }}
@@ -236,14 +225,13 @@ st.markdown(
         border-radius: 8px !important;
     }}
 
-    /* Opened listbox container */
+    /* Opened listbox (Streamlit's custom dropdown) - set container background to light and options dark text */
     div[role="listbox"] {{
         background-color: #ffffff !important;
         color: {TEXT_COLOR} !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         padding: 8px !important;
         box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important;
-        max-width: 520px !important;
     }}
 
     /* Individual option entries */
@@ -452,7 +440,7 @@ with st.sidebar:
             font-size:1.15rem;
             font-weight:700;
             color:{TEXT_COLOR};
-            margin-bottom:1.2rem;
+            margin-bottom:1.8rem;
         ">
             AQI Forecast
         </div>
@@ -464,10 +452,10 @@ with st.sidebar:
         f"""
         <div style="
             font-size:0.72rem;
-            color:{TEXT_COLOR};
+            color:#777777;
             text-transform:uppercase;
             letter-spacing:0.06em;
-            margin-bottom:0.6rem;
+            margin-bottom:0.4rem;
         ">
             Location
         </div>
@@ -476,7 +464,7 @@ with st.sidebar:
             font-size:1rem;
             font-weight:600;
             color:{TEXT_COLOR};
-            margin-bottom:1.2rem;
+            margin-bottom:1.5rem;
         ">
             Gujranwala, Punjab
         </div>
@@ -484,19 +472,16 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    # extended description (slightly smaller)
     st.markdown(
         f"""
         <div style="
-            font-size:0.78rem;
-            color:{TEXT_COLOR};
-            line-height:1.45;
-            margin-top:0.6rem;
+            font-size:0.8rem;
+            color:#555555;
+            line-height:1.5;
         ">
-            Real-time air quality forecasts generated using live weather observations and measured air-quality features.
-            Features and historical records are stored in Hopsworks; forecasts are produced by CatBoost models and
-            explained with SHAP to highlight the drivers behind each prediction. Data is refreshed regularly and the
-            dashboard shows the latest available measurements and 24/48/72-hour model forecasts.
+            Air quality forecasts generated using
+            weather observations, air-quality data,
+            CatBoost machine-learning models and SHAP.
         </div>
         """,
         unsafe_allow_html=True

@@ -47,15 +47,6 @@ LATITUDE = 32.1617
 LONGITUDE = 74.1883
 AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
-# Pollutant units
-POLLUTANT_UNITS = {
-    "pm2_5": "µg/m³",
-    "pm10": "µg/m³",
-    "nitrogen_dioxide": "µg/m³",
-    "sulphur_dioxide": "µg/m³",
-    "ozone": "µg/m³",
-}
-
 # Page styling
 
 st.markdown(
@@ -170,7 +161,7 @@ st.markdown(
         background-color: {WHITE};
         border: 1px solid {BORDER};
         border-radius: 10px;
-        padding: 0.6rem 0.75rem;
+        padding: 0.8rem 1rem;
         text-align: center;
     }}
 
@@ -183,16 +174,48 @@ st.markdown(
     }}
 
     .pollutant-value {{
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         font-weight: 700;
         color: {TEXT_COLOR};
-        margin-top: 0.25rem;
+        margin-top: 0.35rem;
     }}
 
-    .pollutant-unit {{
-        font-size: 0.72rem;
-        color: #666666;
-        margin-top: 0.15rem;
+    .aqi-current-card {{
+        background-color: {WHITE};
+        border: 1px solid {BORDER};
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }}
+
+    .aqi-current-left {{
+        display:flex;
+        flex-direction:column;
+        gap:0.35rem;
+    }}
+
+    .aqi-current-value {{
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: {TEXT_COLOR};
+    }}
+
+    .aqi-current-label {{
+        font-size: 0.95rem;
+        font-weight: 700;
+        padding: 0.25rem 0.5rem;
+        border-radius: 8px;
+        display:inline-block;
+    }}
+
+    .aqi-current-desc {{
+        font-size: 0.9rem;
+        color: #555555;
     }}
 
     .footer {{
@@ -202,62 +225,11 @@ st.markdown(
         padding: 2rem 0 1rem 0;
     }}
 
-    /* Darker spinner for visibility (attempt to override Streamlit spinner) */
+    /* Darker spinner for visibility */
     .stSpinner, .stSpinner * {{
         color: #111 !important;
         stroke: #111 !important;
         fill: #111 !important;
-    }}
-
-    /* Selectbox styling: make closed select/light label area use light background (#cbcbcb) with dark text */
-    .stSelectbox > div[role="button"], .stSelectbox > div[role="button"] * {{
-        background-color: #cbcbcb !important;
-        color: {TEXT_COLOR} !important;
-        border-radius: 8px !important;
-        padding-left: 12px !important;
-    }}
-
-    /* Native select fallback */
-    select,
-    .stSelectbox select {{
-        background-color: #cbcbcb !important;
-        color: {TEXT_COLOR} !important;
-        border-radius: 8px !important;
-    }}
-
-    /* Opened listbox (Streamlit's custom dropdown) - set container background to light and options dark text */
-    div[role="listbox"] {{
-        background-color: #ffffff !important;
-        color: {TEXT_COLOR} !important;
-        border-radius: 8px !important;
-        padding: 8px !important;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important;
-    }}
-
-    /* Individual option entries */
-    div[role="listbox"] > div[role="option"] {{
-        background-color: transparent !important;
-        color: {TEXT_COLOR} !important;
-        padding: 8px 12px !important;
-        border-radius: 6px !important;
-    }}
-
-    /* Hover and focus styles for options */
-    div[role="listbox"] > div[role="option"]:hover {{
-        background-color: #e6e6e6 !important;
-        color: {TEXT_COLOR} !important;
-    }}
-
-    /* Selected option should use the #cbcbcb light background with dark text */
-    div[role="listbox"] > div[role="option"][aria-selected="true"] {{
-        background-color: #cbcbcb !important;
-        color: {TEXT_COLOR} !important;
-    }}
-
-    /* Option element fallback in some browsers */
-    option {{
-        background-color: #cbcbcb !important;
-        color: {TEXT_COLOR} !important;
     }}
 
     </style>
@@ -267,6 +239,7 @@ st.markdown(
 
 
 # AQI classification
+
 def get_aqi_category(aqi):
 
     if aqi <= 50:
@@ -348,7 +321,6 @@ FEATURE_LABELS = {
     "aqi_rolling_24": "AQI — 24 Hour Average",
 }
 
-
 def readable_feature(name):
 
     return FEATURE_LABELS.get(
@@ -357,78 +329,48 @@ def readable_feature(name):
     )
 
 
-# Helper: fetch hourly AQI for a month from Hopsworks
-@st.cache_data(ttl=1800, show_spinner=False)
-def fetch_monthly_aqi_from_hopsworks(year: int, month: int) -> pd.DataFrame:
-    """Fetch hourly AQI for a given year/month from the Hopsworks feature group."""
-    try:
-        fg = get_feature_group()
-        df = fg.read()  # hsfs feature group read()
-    except Exception as exc:
-        raise RuntimeError(f"Unable to read feature group from Hopsworks: {exc}")
-
-    if df is None or df.empty:
-        return pd.DataFrame()
-
-    df = df.copy()
-    if "datetime" not in df.columns:
-        # try alternate names
-        if "date_time" in df.columns:
-            df["datetime"] = df["date_time"]
-        elif "timestamp" in df.columns:
-            df["datetime"] = df["timestamp"]
-        else:
-            raise RuntimeError("Feature group does not contain 'datetime' column")
-
-    df["datetime"] = pd.to_datetime(df["datetime"])
-
-    mask = (df["datetime"].dt.year == int(year)) & (df["datetime"].dt.month == int(month))
-    month_df = df.loc[mask, ["datetime", "us_aqi"]].rename(columns={"us_aqi": "aqi"}).copy()
-
-    if month_df.empty:
-        return pd.DataFrame()
-
-    month_df = month_df.sort_values("datetime").reset_index(drop=True)
-    month_df["aqi"] = pd.to_numeric(month_df["aqi"], errors="coerce")
-    month_df = month_df.dropna()
-
-    return month_df
-
-
-# Helper: fetch latest pollutant measurements from Hopsworks
+# Fetch current AQI from Hopsworks feature group
 @st.cache_data(ttl=300, show_spinner=False)
-def fetch_latest_pollutants_from_hopsworks():
+def fetch_latest_aqi_from_hopsworks():
+    """
+    Returns a dict:
+      {"aqi": float or None, "datetime": pd.Timestamp or None}
+    """
     try:
         fg = get_feature_group()
         df = fg.read()
     except Exception as exc:
-        # propagate error so caller can fall back
         raise RuntimeError(f"Unable to read feature group from Hopsworks: {exc}")
 
     if df is None or df.empty:
-        raise RuntimeError("Feature group is empty")
+        return {"aqi": None, "datetime": None}
 
     df = df.copy()
-
-    # normalize datetime
+    # try to locate datetime column
     if "datetime" in df.columns:
         df["datetime"] = pd.to_datetime(df["datetime"])
     else:
-        # try first column as datetime
-        df.iloc[:, 0] = pd.to_datetime(df.iloc[:, 0])
-        df = df.rename(columns={df.columns[0]: "datetime"})
-
-    latest_row = df.sort_values("datetime").tail(1).iloc[0]
-
-    pollutants = {}
-    for col in ["pm2_5", "pm10", "nitrogen_dioxide", "sulphur_dioxide", "ozone"]:
-        if col in df.columns:
-            val = latest_row.get(col, None)
-            pollutants[col] = None if pd.isna(val) else float(val)
+        # attempt common alternatives
+        if "date_time" in df.columns:
+            df["datetime"] = pd.to_datetime(df["date_time"])
+        elif "timestamp" in df.columns:
+            df["datetime"] = pd.to_datetime(df["timestamp"])
         else:
-            pollutants[col] = None
+            # Can't find datetime - return empty
+            return {"aqi": None, "datetime": None}
 
-    return pollutants
+    # Ensure us_aqi exists
+    if "us_aqi" not in df.columns:
+        return {"aqi": None, "datetime": None}
+
+    latest = df.sort_values("datetime").tail(1).iloc[0]
+    aqi_val = latest.get("us_aqi", None)
+    if pd.isna(aqi_val):
+        return {"aqi": None, "datetime": latest.get("datetime", None)}
+    try:
+        return {"aqi": float(aqi_val), "datetime": pd.to_datetime(latest.get("datetime"))}
+    except Exception:
+        return {"aqi": None, "datetime": latest.get("datetime", None)}
 
 
 # Sidebar
@@ -499,16 +441,82 @@ st.markdown(
     <div class="dashboard-location">
         Gujranwala, Punjab, Pakistan
     </div>
+    """,
+    unsafe_allow_html=True
+)
 
+
+# Current AQI card (below title, above generate button)
+try:
+    current_aqi = fetch_latest_aqi_from_hopsworks()
+except Exception as exc:
+    current_aqi = {"aqi": None, "datetime": None}
+    st.info(f"Unable to load current AQI from Hopsworks: {exc}")
+
+if current_aqi.get("aqi") is not None:
+    aqi_value = current_aqi["aqi"]
+    aqi_dt = current_aqi["datetime"]
+    category, category_color, _bg, message = get_aqi_category(aqi_value)
+
+    # full-width card
+    st.markdown(
+        f"""
+        <div class="aqi-current-card" style="width:100%;">
+            <div class="aqi-current-left">
+                <div style="font-size:0.85rem;color:#666666;">Current AQI</div>
+                <div class="aqi-current-value">{aqi_value:.1f}</div>
+                <div style="margin-top:6px;">
+                    <span class="aqi-current-label" style="background-color:{category_color}; color: {'#000000' if category in ['Good','Moderate'] else '#ffffff'};">
+                        {category}
+                    </span>
+                </div>
+            </div>
+
+            <div style="flex:1; padding-left:1rem;">
+                <div class="aqi-current-desc">
+                    {message}{" " if message else ""}Measured at {pd.to_datetime(aqi_dt).strftime('%d %b %Y, %H:%M') if aqi_dt is not None else ""}
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+else:
+    # show a subtle placeholder info card
+    st.markdown(
+        """
+        <div class="aqi-current-card" style="width:100%;">
+            <div class="aqi-current-left">
+                <div style="font-size:0.85rem;color:#666666;">Current AQI</div>
+                <div class="aqi-current-value">—</div>
+                <div style="margin-top:6px;">
+                    <span class="aqi-current-label" style="background-color:#f0f0f0; color:#666666;">
+                        N/A
+                    </span>
+                </div>
+            </div>
+
+            <div style="flex:1; padding-left:1rem;">
+                <div class="aqi-current-desc">
+                    Current AQI measurement is not available.
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# Generate forecast
+
+st.markdown(
+    f"""
     <div class="dashboard-subtitle">
         Machine-learning forecast for the next 72 hours.
     </div>
     """,
     unsafe_allow_html=True
 )
-
-
-# Generate forecast
 
 generate = st.button(
     "Generate AQI Forecast",
@@ -646,51 +654,54 @@ if "forecast_result" in st.session_state:
                 unsafe_allow_html=True
             )
 
-    # Top pollutants (fetch real values from Hopsworks when available)
+    # Top pollutants (line and small cards)
     st.markdown(
         '<div class="section-title">Top Pollutants</div>',
         unsafe_allow_html=True
     )
 
+    # Order for display
     pollutant_order = ["pm2_5", "pm10", "nitrogen_dioxide", "sulphur_dioxide", "ozone"]
-
-    # Try to fetch real pollutant values from Hopsworks; fall back to prediction row
-    try:
-        pollutants = fetch_latest_pollutants_from_hopsworks()
-    except Exception as exc:
-        pollutants = None
-        st.info(f"Could not load latest pollutants from Hopsworks: {exc}")
 
     # Choose a reference row (prefer 24h horizon)
     ref_row = predictions[predictions["horizon_hours"] == 24]
     if ref_row.empty and not predictions.empty:
         ref_row = predictions.iloc[[0]]
 
-    # Small cards only (no inline text)
+    # Inline summary
+    inline_items = []
+    for p in pollutant_order:
+        if not ref_row.empty and p in ref_row.columns:
+            try:
+                raw = ref_row[p].iloc[0]
+                display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
+            except Exception:
+                display = "—"
+        else:
+            display = "—"
+        inline_items.append(f"{readable_feature(p)}: {display}")
+
+    st.markdown(" • ".join(inline_items))
+
+    # Small cards
     cols = st.columns(len(pollutant_order))
 
     for idx, p in enumerate(pollutant_order):
         with cols[idx]:
-            if pollutants is not None:
-                val = pollutants.get(p)
-                display = "—" if val is None else f"{val:.1f}"
-            else:
-                if not ref_row.empty and p in ref_row.columns:
-                    try:
-                        raw = ref_row[p].iloc[0]
-                        display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
-                    except Exception:
-                        display = "—"
-                else:
+            if not ref_row.empty and p in ref_row.columns:
+                try:
+                    raw = ref_row[p].iloc[0]
+                    display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
+                except Exception:
                     display = "—"
+            else:
+                display = "—"
 
-            unit = POLLUTANT_UNITS.get(p, "")
             st.markdown(
                 f"""
                 <div class="pollutant-card">
                     <div class="pollutant-name">{readable_feature(p)}</div>
                     <div class="pollutant-value">{display}</div>
-                    <div class="pollutant-unit">{unit}</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -787,28 +798,27 @@ if "forecast_result" in st.session_state:
         use_container_width=True
     )
 
-    # AQI Trend (monthly view) — fetch from Hopsworks
+    # AQI Trend (monthly view)
     st.markdown(
         '<div class="section-title">AQI Trend</div>',
         unsafe_allow_html=True
     )
 
     now = datetime.now()
-    # Data available since Jan 2024
-    years = list(range(2024, now.year + 1))[::-1]
+    years = [now.year, now.year - 1]
     selected_year = st.selectbox("Year", years, index=0)
 
     months = list(range(1, 13))
-    # default month selection: current month if current year else January
-    default_month_index = now.month - 1 if selected_year == now.year else 0
-    selected_month = st.selectbox("Month", months, index=default_month_index, format_func=lambda m: datetime(selected_year, m, 1).strftime("%B"))
+    month_names = [datetime(selected_year, m, 1).strftime("%B") for m in months]
+    selected_month_idx = st.selectbox("Month", list(range(1, 13)), format_func=lambda m: datetime(selected_year, m, 1).strftime("%B"), index=now.month - 1 if selected_year == now.year else 0)
+    selected_month = int(selected_month_idx)
 
     # Prevent future month selection
     if selected_year > now.year or (selected_year == now.year and selected_month > now.month):
         st.error("Data not available for future months")
     else:
         try:
-            month_df = fetch_monthly_aqi_from_hopsworks(selected_year, selected_month)
+            month_df = fetch_monthly_aqi(selected_year, selected_month)
 
             if month_df.empty:
                 st.info("No AQI data available for the selected month.")
@@ -859,7 +869,7 @@ if "forecast_result" in st.session_state:
                 st.plotly_chart(aqi_fig, use_container_width=True)
 
         except Exception as exc:
-            st.warning(f"Unable to load monthly AQI data from Hopsworks: {exc}")
+            st.warning(f"Unable to load monthly AQI data: {exc}")
 
     # Model explanation
 
@@ -949,7 +959,7 @@ if "forecast_result" in st.session_state:
                 orientation="h",
 
                 marker=dict(
-                    color=CHART_BLUE
+                    color=TEXT_COLOR
                 ),
 
                 hovertemplate=(
@@ -1002,50 +1012,3 @@ if "forecast_result" in st.session_state:
 
             yaxis=dict(
                 title="",
-
-                tickfont=dict(
-                    color=TEXT_COLOR
-                ),
-
-                linecolor=TEXT_COLOR,
-
-                tickcolor=TEXT_COLOR
-            ),
-
-            showlegend=False
-        )
-
-
-        st.plotly_chart(
-            fig_shap,
-            use_container_width=True
-        )
-
-
-    else:
-
-        st.info(
-            "SHAP explanation is not available for this forecast."
-        )
-
-
-# Initial state
-
-else:
-
-    st.info(
-        "Select 'Generate AQI Forecast' to retrieve the latest forecast."
-    )
-
-
-# Footer
-
-st.markdown(
-    """
-    <div class="footer">
-        Gujranwala Air Quality Forecast ·
-        CatBoost · Hopsworks · SHAP
-    </div>
-    """,
-    unsafe_allow_html=True
-)

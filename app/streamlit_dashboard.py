@@ -34,6 +34,7 @@ BORDER = "#e5e5e5"
 GRID_COLOR = "#e5e5e5"
 
 CHART_BLUE = "#02A4D3"
+INFO_BLUE = "#d6ecff"  # Light info-blue (used by the info box) — sidebar will match this
 
 GOOD_COLOR = "#00E400"
 MODERATE_COLOR = "#FFFF00"
@@ -83,20 +84,20 @@ st.markdown(
         background: transparent;
     }}
 
-    /* Sidebar: switch to dashboard blue, rounded right corners, white text for contrast */
+    /* Sidebar: match the info box light blue, more rounded corners, dark text for readability */
     [data-testid="stSidebar"] {{
-        background-color: {CHART_BLUE} !important;
+        background-color: {INFO_BLUE} !important;
         border-right: 1px solid rgba(0,0,0,0.06);
-        border-top-right-radius: 16px;
-        border-bottom-right-radius: 16px;
+        border-top-right-radius: 22px;
+        border-bottom-right-radius: 22px;
         padding-top: 1.6rem;
         padding-left: 1.6rem;
         padding-right: 1.6rem;
     }}
 
-    /* Force text in the sidebar to be readable on blue */
+    /* Force text in the sidebar to be dark for contrast on the light blue */
     [data-testid="stSidebar"] * {{
-        color: #ffffff !important;
+        color: {TEXT_COLOR} !important;
     }}
 
     .dashboard-title {{
@@ -236,7 +237,7 @@ st.markdown(
     div[role="listbox"] {{
         background-color: #ffffff !important;
         color: {TEXT_COLOR} !important;
-        border-radius: 8px !important;
+        border-radius: 10px !important;
         padding: 8px !important;
         box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important;
     }}
@@ -446,7 +447,7 @@ with st.sidebar:
         <div style="
             font-size:1.15rem;
             font-weight:700;
-            color:#ffffff;
+            color:{TEXT_COLOR};
             margin-bottom:1.2rem;
         ">
             AQI Forecast
@@ -459,7 +460,7 @@ with st.sidebar:
         f"""
         <div style="
             font-size:0.72rem;
-            color:#f0f9ff;
+            color:{TEXT_COLOR};
             text-transform:uppercase;
             letter-spacing:0.06em;
             margin-bottom:0.6rem;
@@ -470,7 +471,7 @@ with st.sidebar:
         <div style="
             font-size:1rem;
             font-weight:600;
-            color:#ffffff;
+            color:{TEXT_COLOR};
             margin-bottom:1.2rem;
         ">
             Gujranwala, Punjab
@@ -479,13 +480,13 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    # extended description (user requested more detail)
+    # extended description (slightly smaller)
     st.markdown(
         f"""
         <div style="
-            font-size:0.82rem;
-            color:#f0f9ff;
-            line-height:1.5;
+            font-size:0.78rem;
+            color:{TEXT_COLOR};
+            line-height:1.45;
             margin-top:0.6rem;
         ">
             Real-time air quality forecasts generated using live weather observations and measured air-quality features.

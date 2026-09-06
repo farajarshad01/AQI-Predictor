@@ -209,22 +209,38 @@ st.markdown(
         fill: #111 !important;
     }}
 
-    /* Selectbox styling: lighter background (#cbcbcb) when focused/selected, dark text */
-    div[role="listbox"] > div[role="option"][aria-selected="true"] {{
-        background-color: #cbcbcb !important;
-        color: {TEXT_COLOR} !important;
+    /* Selectbox styling: light background (#cbcbcb) with dark text for readability */
+    .stSelectbox > div, .stSelectbox > div * {{
+        background-color: transparent !important;
+        color: inherit !important;
     }}
 
-    /* fallback for native select elements */
-    select:focus, .stSelectbox select:focus {{
+    select,
+    .stSelectbox select {{
         background-color: #cbcbcb !important;
-        color: {TEXT_COLOR} !important;
+        color: #1c1d1f !important;
+        border-radius: 8px !important;
     }}
 
-    /* option selected color for some browsers */
-    option:checked {{
+    div[role="listbox"] > div[role="option"] {{
+        background-color: transparent !important;
+        color: inherit !important;
+    }}
+
+    div[role="listbox"] > div[role="option"][aria-selected="true"],
+    .stSelectbox > div[role="listbox"] > div[aria-selected="true"] {{
         background-color: #cbcbcb !important;
-        color: {TEXT_COLOR} !important;
+        color: #1c1d1f !important;
+    }}
+
+    .stSelectbox > div > label,
+    .stSelectbox > div > div {{
+        color: #1c1d1f !important;
+    }}
+
+    option {{
+        background-color: #cbcbcb !important;
+        color: #1c1d1f !important;
     }}
 
     </style>

@@ -47,7 +47,7 @@ LATITUDE = 32.1617
 LONGITUDE = 74.1883
 AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
-# Pollutant units (kept available and shown in cards)
+# Pollutant units
 POLLUTANT_UNITS = {
     "pm2_5": "µg/m³",
     "pm10": "µg/m³",
@@ -531,27 +531,29 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-st.markdown(
-    f"""
-    <div style="
-        font-size:0.78rem;
-        color:{TEXT_COLOR};
-        line-height:1.45;
-        margin-top:0.6rem;
-    ">
-        Air Quality Forecasts generated using weather observations, air quality data, machine learning models for 24hr / 48hr / 72hr forecasts.
-        <ul style="margin-top:8px; padding-left:20px; color:{TEXT_COLOR};">
-            <li>Open Meteo</li>
-            <li>CatBoost Regressor</li>
-            <li>Hopsworks</li>
-            <li>GitHub Actions</li>
-            <li>Streamlit</li>
-            <li>SHAP</li>
-        </ul>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+    # updated description block with bullets (inside the sidebar)
+    st.markdown(
+        f"""
+        <div style="
+            font-size:0.78rem;
+            color:{TEXT_COLOR};
+            line-height:1.45;
+            margin-top:0.6rem;
+        ">
+            Air Quality Forecasts generated using weather observations, air quality data, machine learning models for 24hr / 48hr / 72hr forecasts.
+            <ul style="margin-top:8px; padding-left:20px; color:{TEXT_COLOR};">
+                <li>Open Meteo</li>
+                <li>CatBoost Regressor</li>
+                <li>Hopsworks</li>
+                <li>GitHub Actions</li>
+                <li>Streamlit</li>
+                <li>SHAP</li>
+            </ul>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 # Header
 
@@ -798,8 +800,6 @@ if "forecast_result" in st.session_state:
     ref_row = predictions[predictions["horizon_hours"] == 24]
     if ref_row.empty and not predictions.empty:
         ref_row = predictions.iloc[[0]]
-
-    # (Dropped the inline pollutant summary line as requested)
 
     # Small cards
     cols = st.columns(len(pollutant_order))

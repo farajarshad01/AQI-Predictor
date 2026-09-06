@@ -786,23 +786,6 @@ if "forecast_result" in st.session_state:
     if ref_row.empty and not predictions.empty:
         ref_row = predictions.iloc[[0]]
 
-    # Inline summary
-    inline_items = []
-    for p in pollutant_order:
-        if pollutants is not None:
-            val = pollutants.get(p)
-            display = "—" if val is None else f"{val:.1f}"
-        else:
-            if not ref_row.empty and p in ref_row.columns:
-                try:
-                    raw = ref_row[p].iloc[0]
-                    display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
-                except Exception:
-                    display = "—"
-            else:
-                display = "—"
-        inline_items.append(f"{readable_feature(p)}: {display}")
-    st.markdown(" • ".join(inline_items))
 
     # Small cards
     cols = st.columns(len(pollutant_order))

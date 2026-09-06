@@ -34,7 +34,7 @@ BORDER = "#e5e5e5"
 GRID_COLOR = "#e5e5e5"
 
 CHART_BLUE = "#02A4D3"
-INFO_BLUE = "#d6ecff"  # Light info-blue (used by the info box) — sidebar will match this
+INFO_BLUE = "#cbcbcb"  # Sidebar color changed to user-requested #cbcbcb
 
 GOOD_COLOR = "#00E400"
 MODERATE_COLOR = "#FFFF00"
@@ -84,18 +84,21 @@ st.markdown(
         background: transparent;
     }}
 
-    /* Sidebar: match the info box light blue, more rounded corners, dark text for readability */
+    /* Sidebar: changed to #cbcbcb, more rounded (larger corner radius) and a bit narrower */
     [data-testid="stSidebar"] {{
         background-color: {INFO_BLUE} !important;
         border-right: 1px solid rgba(0,0,0,0.06);
-        border-top-right-radius: 22px;
-        border-bottom-right-radius: 22px;
-        padding-top: 1.6rem;
-        padding-left: 1.6rem;
-        padding-right: 1.6rem;
+        border-top-right-radius: 28px;
+        border-bottom-right-radius: 28px;
+        padding-top: 1.4rem;
+        padding-left: 1.4rem;
+        padding-right: 1.4rem;
+        width: 300px !important;
+        min-width: 260px !important;
+        max-width: 320px !important;
     }}
 
-    /* Force text in the sidebar to be dark for contrast on the light blue */
+    /* Force sidebar text to dark for contrast on the light background */
     [data-testid="stSidebar"] * {{
         color: {TEXT_COLOR} !important;
     }}
@@ -240,6 +243,7 @@ st.markdown(
         border-radius: 10px !important;
         padding: 8px !important;
         box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important;
+        max-width: 520px !important;
     }}
 
     /* Individual option entries */

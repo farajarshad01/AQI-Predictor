@@ -209,38 +209,55 @@ st.markdown(
         fill: #111 !important;
     }}
 
-    /* Selectbox styling: light background (#cbcbcb) with dark text for readability */
-    .stSelectbox > div, .stSelectbox > div * {{
-        background-color: transparent !important;
-        color: inherit !important;
+    /* Selectbox styling: make closed select/light label area use light background (#cbcbcb) with dark text */
+    .stSelectbox > div[role="button"], .stSelectbox > div[role="button"] * {{
+        background-color: #cbcbcb !important;
+        color: {TEXT_COLOR} !important;
+        border-radius: 8px !important;
+        padding-left: 12px !important;
     }}
 
+    /* Native select fallback */
     select,
     .stSelectbox select {{
         background-color: #cbcbcb !important;
-        color: #1c1d1f !important;
+        color: {TEXT_COLOR} !important;
         border-radius: 8px !important;
     }}
 
+    /* Opened listbox (Streamlit's custom dropdown) - set container background to light and options dark text */
+    div[role="listbox"] {{
+        background-color: #ffffff !important;
+        color: {TEXT_COLOR} !important;
+        border-radius: 8px !important;
+        padding: 8px !important;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important;
+    }}
+
+    /* Individual option entries */
     div[role="listbox"] > div[role="option"] {{
         background-color: transparent !important;
-        color: inherit !important;
+        color: {TEXT_COLOR} !important;
+        padding: 8px 12px !important;
+        border-radius: 6px !important;
     }}
 
-    div[role="listbox"] > div[role="option"][aria-selected="true"],
-    .stSelectbox > div[role="listbox"] > div[aria-selected="true"] {{
+    /* Hover and focus styles for options */
+    div[role="listbox"] > div[role="option"]:hover {{
+        background-color: #e6e6e6 !important;
+        color: {TEXT_COLOR} !important;
+    }}
+
+    /* Selected option should use the #cbcbcb light background with dark text */
+    div[role="listbox"] > div[role="option"][aria-selected="true"] {{
         background-color: #cbcbcb !important;
-        color: #1c1d1f !important;
+        color: {TEXT_COLOR} !important;
     }}
 
-    .stSelectbox > div > label,
-    .stSelectbox > div > div {{
-        color: #1c1d1f !important;
-    }}
-
+    /* Option element fallback in some browsers */
     option {{
         background-color: #cbcbcb !important;
-        color: #1c1d1f !important;
+        color: {TEXT_COLOR} !important;
     }}
 
     </style>

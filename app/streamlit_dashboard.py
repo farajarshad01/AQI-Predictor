@@ -185,43 +185,6 @@ st.markdown(
         margin-top: 0.45rem;
     }}
 
-    .forecast-card {{
-        background-color: {CARD_BACKGROUND};
-        border: 1px solid {BORDER};
-        border-radius: 14px;
-        padding: 1.35rem;
-        min-height: 205px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    }}
-
-    .forecast-horizon {{
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: {TEXT_COLOR};
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }}
-
-    .forecast-value {{
-        font-size: 2.8rem;
-        font-weight: 800;
-        color: {TEXT_COLOR};
-        margin-top: 0.65rem;
-        margin-bottom: 0.4rem;
-    }}
-
-    .forecast-category {{
-        font-size: 0.88rem;
-        font-weight: 750;
-        margin-top: 0.2rem;
-    }}
-
-    .forecast-time {{
-        font-size: 0.72rem;
-        color: #555555 !important;
-        margin-top: 0.85rem;
-    }}
-
     .footer {{
         text-align: center;
         color: #777777 !important;
@@ -808,34 +771,22 @@ if (
 
         with cards[index]:
 
-            st.markdown(
-                f"""
-                <div class="forecast-card">
+            with st.container(border=True):
 
-                    <div class="forecast-horizon">
-                        {horizon}-Hour Forecast
-                    </div>
+                st.caption(f"{horizon}-Hour Forecast")
 
-                    <div class="forecast-value">
-                        {value:.1f}
-                    </div>
+                st.metric(
+                    label="Predicted AQI",
+                    value=f"{value:.1f}",
+                    label_visibility="collapsed"
+                )
 
-                    <div
-                        class="forecast-category"
-                        style="color:{category_color};"
-                    >
-                        {category}
-                    </div>
+                st.markdown(
+                    f"<span style='color:{category_color}; font-weight:750; font-size:0.9rem;'>{category}</span>",
+                    unsafe_allow_html=True
+                )
 
-                    <div class="forecast-time">
-                        Forecast:
-                        {forecast_time.strftime("%d %b %Y, %H:%M UTC")}
-                    </div>
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                st.caption(f"Forecast: {forecast_time.strftime('%d %b %Y, %H:%M UTC')}")
 
     left_chart, right_chart = st.columns(
         2
@@ -958,9 +909,10 @@ if (
             2024
         ]
 
-        selected_year = st.selectbox(
+        selected_year = st.radio(
             "Select year",
             available_years,
+            horizontal=True,
             index=0,
             label_visibility="collapsed"
         )
@@ -1158,15 +1110,18 @@ if (
         ].abs()
 
 
-        explanation = (
+        top_10 = (
             explanation
-            .nlargest(
-                10,
-                "absolute_shap"
-            )
             .sort_values(
-                "shap_value"
+                "absolute_shap",
+                ascending=False
             )
+            .head(10)
+        )
+
+        explanation = top_10.sort_values(
+            "shap_value",
+            ascending=True
         )
 
 

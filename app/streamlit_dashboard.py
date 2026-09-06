@@ -83,13 +83,20 @@ st.markdown(
         background: transparent;
     }}
 
+    /* Sidebar: switch to dashboard blue, rounded right corners, white text for contrast */
     [data-testid="stSidebar"] {{
-        background-color: {WHITE};
-        border-right: 1px solid {BORDER};
+        background-color: {CHART_BLUE} !important;
+        border-right: 1px solid rgba(0,0,0,0.06);
+        border-top-right-radius: 16px;
+        border-bottom-right-radius: 16px;
+        padding-top: 1.6rem;
+        padding-left: 1.6rem;
+        padding-right: 1.6rem;
     }}
 
+    /* Force text in the sidebar to be readable on blue */
     [data-testid="stSidebar"] * {{
-        color: {TEXT_COLOR} !important;
+        color: #ffffff !important;
     }}
 
     .dashboard-title {{
@@ -225,7 +232,7 @@ st.markdown(
         border-radius: 8px !important;
     }}
 
-    /* Opened listbox (Streamlit's custom dropdown) - set container background to light and options dark text */
+    /* Opened listbox container */
     div[role="listbox"] {{
         background-color: #ffffff !important;
         color: {TEXT_COLOR} !important;
@@ -439,8 +446,8 @@ with st.sidebar:
         <div style="
             font-size:1.15rem;
             font-weight:700;
-            color:{TEXT_COLOR};
-            margin-bottom:1.8rem;
+            color:#ffffff;
+            margin-bottom:1.2rem;
         ">
             AQI Forecast
         </div>
@@ -452,10 +459,10 @@ with st.sidebar:
         f"""
         <div style="
             font-size:0.72rem;
-            color:#777777;
+            color:#f0f9ff;
             text-transform:uppercase;
             letter-spacing:0.06em;
-            margin-bottom:0.4rem;
+            margin-bottom:0.6rem;
         ">
             Location
         </div>
@@ -463,8 +470,8 @@ with st.sidebar:
         <div style="
             font-size:1rem;
             font-weight:600;
-            color:{TEXT_COLOR};
-            margin-bottom:1.5rem;
+            color:#ffffff;
+            margin-bottom:1.2rem;
         ">
             Gujranwala, Punjab
         </div>
@@ -472,16 +479,19 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
+    # extended description (user requested more detail)
     st.markdown(
         f"""
         <div style="
-            font-size:0.8rem;
-            color:#555555;
+            font-size:0.82rem;
+            color:#f0f9ff;
             line-height:1.5;
+            margin-top:0.6rem;
         ">
-            Air quality forecasts generated using
-            weather observations, air-quality data,
-            CatBoost machine-learning models and SHAP.
+            Real-time air quality forecasts generated using live weather observations and measured air-quality features.
+            Features and historical records are stored in Hopsworks; forecasts are produced by CatBoost models and
+            explained with SHAP to highlight the drivers behind each prediction. Data is refreshed regularly and the
+            dashboard shows the latest available measurements and 24/48/72-hour model forecasts.
         </div>
         """,
         unsafe_allow_html=True

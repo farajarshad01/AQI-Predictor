@@ -1,3 +1,4 @@
+# app/streamlit_dashboard.py
 import os
 import sys
 from datetime import datetime
@@ -567,12 +568,14 @@ st.markdown(
 )
 
 
-# Current AQI card (below title/subtext and above the Generate button)
+# Current AQI card (split into 30/70 value + Health Advisory) — below title/subtext and above the Generate button
 try:
     _current = fetch_latest_aqi_from_hopsworks()
 except Exception as exc:
     _current = {"aqi": None, "datetime": None}
     st.info(f"Unable to load current AQI from Hopsworks: {exc}")
+
+cols = st.columns([3, 7])
 
 if _current.get("aqi") is not None:
     aqi_value = _current["aqi"]
@@ -580,40 +583,53 @@ if _current.get("aqi") is not None:
     category, category_color, _bg, message = get_aqi_category(aqi_value)
     audience = get_aqi_audience(aqi_value)
 
-    st.markdown(
-        f"""
-        <div class="info-card" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; width:100%;">
-            <div style="display:flex; flex-direction:column;">
+    with cols[0]:
+        st.markdown(
+            f"""
+            <div class="info-card" style="text-align:center;">
                 <div style="font-size:0.85rem; color:#666666;">Current AQI</div>
-                <div style="font-size:2.0rem; font-weight:700; color:{TEXT_COLOR}; margin-top:0.25rem;">{aqi_value:.1f}</div>
+                <div style="font-size:2.4rem; font-weight:800; color:{TEXT_COLOR}; margin-top:0.25rem;">{aqi_value:.1f}</div>
                 <div style="margin-top:6px; color:{category_color}; font-weight:700;">{category}</div>
             </div>
-            <div style="flex:1; padding-left:1rem; color:#555555; text-align:center;">
-                <div style="margin-bottom:6px;">{message if message else ""}</div>
-                <div>{audience if audience else ""}</div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with cols[1]:
+        st.markdown(
+            f"""
+            <div class="info-card">
+                <div style="font-size:1rem; font-weight:700; color:{TEXT_COLOR}; margin-bottom:6px;">Health Advisory</div>
+                <div style="text-align:center; color:#555555; font-size:0.95rem;">{message if message else ''}</div>
+                <div style="text-align:center; margin-top:6px; color:{category_color}; font-weight:700;">{audience if audience else ''}</div>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            """,
+            unsafe_allow_html=True
+        )
 else:
-    st.markdown(
-        f"""
-        <div class="info-card" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; width:100%;">
-            <div style="display:flex; flex-direction:column;">
+    with cols[0]:
+        st.markdown(
+            f"""
+            <div class="info-card" style="text-align:center;">
                 <div style="font-size:0.85rem; color:#666666;">Current AQI</div>
-                <div style="font-size:2.0rem; font-weight:700; color:{TEXT_COLOR}; margin-top:0.25rem;">—</div>
+                <div style="font-size:2.4rem; font-weight:800; color:{TEXT_COLOR}; margin-top:0.25rem;">—</div>
                 <div style="margin-top:6px; color:#666666; font-weight:700;">N/A</div>
             </div>
-            <div style="flex:1; padding-left:1rem; color:#555555; text-align:center;">
-                <div>Current AQI measurement is not available.</div>
+            """,
+            unsafe_allow_html=True
+        )
+    with cols[1]:
+        st.markdown(
+            f"""
+            <div class="info-card">
+                <div style="font-size:1rem; font-weight:700; color:{TEXT_COLOR}; margin-bottom:6px;">Health Advisory</div>
+                <div style="text-align:center; color:#555555; font-size:0.95rem;">Current AQI measurement is not available.</div>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            """,
+            unsafe_allow_html=True
+        )
 
-# Add spacing between the card and the Generate button
+# Add spacing between the cards and the Generate button
 st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
 
@@ -761,7 +777,6 @@ if "forecast_result" in st.session_state:
         unsafe_allow_html=True
     )
 
-    # Order for display
     pollutant_order = ["pm2_5", "pm10", "nitrogen_dioxide", "sulphur_dioxide", "ozone"]
 
     # Try to fetch real pollutant values from Hopsworks; fall back to prediction row
@@ -776,24 +791,7 @@ if "forecast_result" in st.session_state:
     if ref_row.empty and not predictions.empty:
         ref_row = predictions.iloc[[0]]
 
-    # Inline summary
-    inline_items = []
-    for p in pollutant_order:
-        if pollutants is not None:
-            val = pollutants.get(p)
-            display = "—" if val is None else f"{val:.1f}"
-        else:
-            if not ref_row.empty and p in ref_row.columns:
-                try:
-                    raw = ref_row[p].iloc[0]
-                    display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
-                except Exception:
-                    display = "—"
-            else:
-                display = "—"
-        inline_items.append(f"{readable_feature(p)}: {display}")
-
-    st.markdown(" • ".join(inline_items))
+    # (Dropped the inline pollutant summary line as requested)
 
     # Small cards
     cols = st.columns(len(pollutant_order))

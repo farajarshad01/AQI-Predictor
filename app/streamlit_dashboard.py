@@ -232,8 +232,6 @@ st.markdown(
     .aqi-current-label {{
         font-size: 0.95rem;
         font-weight: 700;
-        padding: 0.25rem 0.5rem;
-        border-radius: 8px;
         display:inline-block;
     }}
 
@@ -311,51 +309,36 @@ st.markdown(
 # AQI classification
 def get_aqi_category(aqi):
     if aqi <= 50:
-        return (
-            "Good",
-            GOOD_COLOR,
-            "#dcfce7",
-            "Air quality is considered satisfactory."
-        )
-
+        return ("Good", GOOD_COLOR, "#dcfce7", "Air quality is considered satisfactory.")
     if aqi <= 100:
-        return (
-            "Moderate",
-            MODERATE_COLOR,
-            "#fef9c3",
-            "Air quality is acceptable; unusually sensitive people may experience minor effects."
-        )
-
+        return ("Moderate", MODERATE_COLOR, "#fef9c3",
+                "Air quality is acceptable; unusually sensitive people may experience minor effects.")
     if aqi <= 150:
-        return (
-            "Unhealthy for Sensitive Groups",
-            SENSITIVE_COLOR,
-            "#ffedd5",
-            "Sensitive groups may experience health effects."
-        )
-
+        return ("Unhealthy for Sensitive Groups", SENSITIVE_COLOR, "#ffedd5",
+                "Sensitive groups may experience health effects.")
     if aqi <= 200:
-        return (
-            "Unhealthy",
-            UNHEALTHY_COLOR,
-            "#fee2e2",
-            "Everyone may begin to experience health effects."
-        )
-
+        return ("Unhealthy", UNHEALTHY_COLOR, "#fee2e2", "Everyone may begin to experience health effects.")
     if aqi <= 300:
-        return (
-            "Very Unhealthy",
-            VERY_UNHEALTHY_COLOR,
-            "#fecaca",
-            "Health alert: the risk of health effects is increased."
-        )
+        return ("Very Unhealthy", VERY_UNHEALTHY_COLOR, "#fecaca",
+                "Health alert: the risk of health effects is increased.")
+    return ("Hazardous", HAZARDOUS_COLOR, "#fca5a5", "Health warning of emergency conditions.")
 
-    return (
-        "Hazardous",
-        HAZARDOUS_COLOR,
-        "#fca5a5",
-        "Health warning of emergency conditions."
-    )
+
+def get_aqi_audience(aqi):
+    """Return a short sentence stating who is at risk for the provided AQI."""
+    if aqi is None:
+        return ""
+    if aqi <= 50:
+        return "No special precautions required for the general population."
+    if aqi <= 100:
+        return "Unusually sensitive people should consider limiting prolonged outdoor exertion."
+    if aqi <= 150:
+        return "Sensitive groups (children, elderly, people with lung disease, and asthmatics) may be affected."
+    if aqi <= 200:
+        return "People with heart or lung disease, older adults, and children should avoid prolonged outdoor exertion."
+    if aqi <= 300:
+        return "Everyone may experience more serious health effects; avoid outdoor activity if possible."
+    return "Health alert: everyone should avoid all outdoor exertion and follow local guidance."
 
 
 # Feature labels / readable names
@@ -413,10 +396,7 @@ def fetch_monthly_aqi(year: int, month: int) -> pd.DataFrame:
     response.raise_for_status()
     payload = response.json()
     hourly = payload.get("hourly", {})
-    df = pd.DataFrame({
-        "datetime": hourly.get("time", []),
-        "aqi": hourly.get("us_aqi", []),
-    })
+    df = pd.DataFrame({"datetime": hourly.get("time", []), "aqi": hourly.get("us_aqi", [])})
     if df.empty:
         return df
     df["datetime"] = pd.to_datetime(df["datetime"])
@@ -603,6 +583,7 @@ if current_aqi.get("aqi") is not None:
     aqi_value = current_aqi["aqi"]
     aqi_dt = current_aqi["datetime"]
     category, category_color, _bg, message = get_aqi_category(aqi_value)
+    audience = get_aqi_audience(aqi_value)
 
     st.markdown(
         f"""
@@ -611,7 +592,7 @@ if current_aqi.get("aqi") is not None:
                 <div style="font-size:0.85rem;color:#666666;">Current AQI</div>
                 <div class="aqi-current-value">{aqi_value:.1f}</div>
                 <div style="margin-top:6px;">
-                    <span class="aqi-current-label" style="background-color:{category_color}; color: {'#000000' if category in ['Good','Moderate'] else '#ffffff'};">
+                    <span class="aqi-current-label" style="color:{category_color};">
                         {category}
                     </span>
                 </div>
@@ -619,7 +600,7 @@ if current_aqi.get("aqi") is not None:
 
             <div style="flex:1; padding-left:1rem;">
                 <div class="aqi-current-desc">
-                    {message}{" " if message else ""}Measured at {pd.to_datetime(aqi_dt).strftime('%d %b %Y, %H:%M') if aqi_dt is not None else ""}
+                    {message}{" " if message else ""}{"• " + audience if audience else ""}{" " if (aqi_dt is not None and (message or audience)) else ""}{"Measured at " + pd.to_datetime(aqi_dt).strftime('%d %b %Y, %H:%M') if aqi_dt is not None else ""}
                 </div>
             </div>
         </div>
@@ -634,7 +615,7 @@ else:
                 <div style="font-size:0.85rem;color:#666666;">Current AQI</div>
                 <div class="aqi-current-value">—</div>
                 <div style="margin-top:6px;">
-                    <span class="aqi-current-label" style="background-color:#f0f0f0; color:#666666;">
+                    <span class="aqi-current-label" style="color:#666666;">
                         N/A
                     </span>
                 </div>
@@ -714,7 +695,6 @@ if "forecast_result" in st.session_state:
             )
             st.markdown(
                 f"""<div style="
-                    background-color: {category_color};
                     color: {"#000000" if category in ["Good", "Moderate"] else "#ffffff"};
                     padding: 0.5rem 0.75rem;
                     border-radius: 8px;
@@ -722,7 +702,7 @@ if "forecast_result" in st.session_state:
                     font-size: 0.85rem;
                     text-align: center;
                     margin-top: 0.6rem;
-                ">{category}</div>""",
+                "><span style="color:{category_color};">{category}</span></div>""",
                 unsafe_allow_html=True
             )
 
@@ -805,8 +785,10 @@ if "forecast_result" in st.session_state:
         plot_bgcolor=WHITE,
         paper_bgcolor=WHITE,
         font=dict(color=TEXT_COLOR),
-        xaxis=dict(title="Forecast Time", title_font=dict(color=TEXT_COLOR), tickfont=dict(color=TEXT_COLOR), showgrid=False, linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR),
-        yaxis=dict(title="AQI", title_font=dict(color=TEXT_COLOR), tickfont=dict(color=TEXT_COLOR), gridcolor=GRID_COLOR, zerolinecolor=TEXT_COLOR, linecolor=TEXT_COLOR),
+        xaxis=dict(title="Forecast Time", title_font=dict(color=TEXT_COLOR), tickfont=dict(color=TEXT_COLOR),
+                   showgrid=False, linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR),
+        yaxis=dict(title="AQI", title_font=dict(color=TEXT_COLOR), tickfont=dict(color=TEXT_COLOR),
+                   gridcolor=GRID_COLOR, zerolinecolor=TEXT_COLOR, linecolor=TEXT_COLOR),
         showlegend=False
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -818,7 +800,8 @@ if "forecast_result" in st.session_state:
     selected_year = st.selectbox("Year", years, index=0)
     months = list(range(1, 13))
     default_month_index = now.month - 1 if selected_year == now.year else 0
-    selected_month = st.selectbox("Month", months, index=default_month_index, format_func=lambda m: datetime(selected_year, m, 1).strftime("%B"))
+    selected_month = st.selectbox("Month", months, index=default_month_index,
+                                  format_func=lambda m: datetime(selected_year, m, 1).strftime("%B"))
 
     if selected_year > now.year or (selected_year == now.year and selected_month > now.month):
         st.error("Data not available for future months")
@@ -857,15 +840,19 @@ if "forecast_result" in st.session_state:
                 paper_bgcolor=WHITE,
                 font=dict(color=TEXT_COLOR, size=12),
                 showlegend=False,
-                xaxis=dict(title="Date", showgrid=False, linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR, title_font=dict(color=TEXT_COLOR), tickfont=dict(color=TEXT_COLOR)),
-                yaxis=dict(title="AQI", gridcolor=GRID_COLOR, linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR, title_font=dict(color=TEXT_COLOR), tickfont=dict(color=TEXT_COLOR))
+                xaxis=dict(title="Date", showgrid=False, linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR,
+                           title_font=dict(color=TEXT_COLOR), tickfont=dict(color=TEXT_COLOR)),
+                yaxis=dict(title="AQI", gridcolor=GRID_COLOR, linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR,
+                           title_font=dict(color=TEXT_COLOR), tickfont=dict(color=TEXT_COLOR))
             )
             st.plotly_chart(aqi_fig, use_container_width=True)
 
     # Model explanation (SHAP)
     st.markdown('<div class="section-title">Model Explanation</div>', unsafe_allow_html=True)
-    st.caption("SHAP shows which input features contributed most to each AQI forecast. Positive values push the prediction higher; negative values push it lower.")
-    selected_horizon = st.radio("Forecast horizon", [24, 48, 72], horizontal=True, format_func=lambda value: f"{value}-hour forecast")
+    st.caption(
+        "SHAP shows which input features contributed most to each AQI forecast. Positive values push the prediction higher; negative values push it lower.")
+    selected_horizon = st.radio("Forecast horizon", [24, 48, 72], horizontal=True,
+                               format_func=lambda value: f"{value}-hour forecast")
     explanation = explanations.get(selected_horizon)
 
     if explanation is not None:
@@ -894,7 +881,9 @@ if "forecast_result" in st.session_state:
             plot_bgcolor=WHITE,
             paper_bgcolor=WHITE,
             font=dict(color=TEXT_COLOR),
-            xaxis=dict(title="SHAP Contribution", title_font=dict(color=TEXT_COLOR), tickfont=dict(color=TEXT_COLOR), gridcolor=GRID_COLOR, zeroline=True, zerolinecolor=TEXT_COLOR, linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR),
+            xaxis=dict(title="SHAP Contribution", title_font=dict(color=TEXT_COLOR),
+                       tickfont=dict(color=TEXT_COLOR), gridcolor=GRID_COLOR, zeroline=True,
+                       zerolinecolor=TEXT_COLOR, linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR),
             yaxis=dict(title="", tickfont=dict(color=TEXT_COLOR), linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR),
             showlegend=False
         )

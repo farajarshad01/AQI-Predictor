@@ -603,14 +603,13 @@ if _current.get("aqi") is not None:
         )
 
     with cols[1]:
-        # Title uses same color and stronger weight to harmonize with Current AQI
-        # Message and audience use same font size and are center-aligned.
-        # Audience (hazard) is colored but not bold.
+        # Title now matches Current AQI title (size, color) and is center-aligned.
+        # Message and audience use the same font-size and weight; audience colored but not bold.
         st.markdown(
             f"""
             <div class="info-card">
-                <div style="font-size:1rem; font-weight:800; color:{TEXT_COLOR}; margin-bottom:8px; text-align:left;">Health Advisory</div>
-                <div style="text-align:center; color:#555555; font-size:1rem;">{message if message else ''}</div>
+                <div style="font-size:0.85rem; color:#666666; font-weight:400; margin-bottom:8px; text-align:center;">Health Advisory</div>
+                <div style="text-align:center; color:#555555; font-size:1rem; font-weight:400;">{message if message else ''}</div>
                 <div style="text-align:center; margin-top:6px; color:{category_color}; font-weight:400; font-size:1rem;">{audience if audience else ''}</div>
             </div>
             """,
@@ -632,8 +631,8 @@ else:
         st.markdown(
             f"""
             <div class="info-card">
-                <div style="font-size:1rem; font-weight:800; color:{TEXT_COLOR}; margin-bottom:8px; text-align:left;">Health Advisory</div>
-                <div style="text-align:center; color:#555555; font-size:1rem;">Current AQI measurement is not available.</div>
+                <div style="font-size:0.85rem; color:#666666; font-weight:400; margin-bottom:8px; text-align:center;">Health Advisory</div>
+                <div style="text-align:center; color:#555555; font-size:1rem; font-weight:400;">Current AQI measurement is not available.</div>
             </div>
             """,
             unsafe_allow_html=True

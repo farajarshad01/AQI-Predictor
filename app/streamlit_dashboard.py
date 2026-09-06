@@ -18,7 +18,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from src.prediction_pipeline import predict
-
+from src.hopsworksclients import get_feature_group
 
 st.set_page_config(
     page_title="Gujranwala Air Quality",
@@ -187,11 +187,23 @@ st.markdown(
         padding: 2rem 0 1rem 0;
     }}
 
-    /* Darker spinner for visibility */
+    /* Darker spinner for visibility (attempt to override Streamlit spinner) */
     .stSpinner, .stSpinner * {{
         color: #111 !important;
         stroke: #111 !important;
         fill: #111 !important;
+    }}
+
+    /* Selectbox focus styling: switch background when focused/selected */
+    div[role="listbox"] > div[role="option"][aria-selected="true"] {{
+        background-color: {CHART_BLUE} !important;
+        color: #ffffff !important;
+    }}
+
+    /* fallback for native select elements */
+    select:focus, .stSelectbox select:focus {{
+        background-color: {CHART_BLUE} !important;
+        color: #ffffff !important;
     }}
 
     </style>
@@ -282,6 +294,7 @@ FEATURE_LABELS = {
     "aqi_rolling_24": "AQI — 24 Hour Average",
 }
 
+
 def readable_feature(name):
 
     return FEATURE_LABELS.get(
@@ -290,52 +303,78 @@ def readable_feature(name):
     )
 
 
-# Helper: fetch hourly AQI for a month
+# Helper: fetch hourly AQI for a month from Hopsworks
 @st.cache_data(ttl=1800, show_spinner=False)
-def fetch_monthly_aqi(year: int, month: int) -> pd.DataFrame:
-    """Fetch hourly AQI for a given year/month and return a DataFrame with datetime and aqi."""
+def fetch_monthly_aqi_from_hopsworks(year: int, month: int) -> pd.DataFrame:
+    """Fetch hourly AQI for a given year/month from the Hopsworks feature group."""
+    try:
+        fg = get_feature_group()
+        df = fg.read()  # hsfs feature group read()
+    except Exception as exc:
+        raise RuntimeError(f"Unable to read feature group from Hopsworks: {exc}")
 
-    year = int(year)
-    month = int(month)
+    if df is None or df.empty:
+        return pd.DataFrame()
 
-    _, last_day = calendar.monthrange(year, month)
-
-    start_date = f"{year}-{month:02d}-01"
-    end_date = f"{year}-{month:02d}-{last_day:02d}"
-
-    params = {
-        "latitude": LATITUDE,
-        "longitude": LONGITUDE,
-        "timezone": "Asia/Karachi",
-        "hourly": "us_aqi",
-        "start_date": start_date,
-        "end_date": end_date,
-    }
-
-    response = requests.get(
-        AIR_QUALITY_URL,
-        params=params,
-        timeout=60
-    )
-
-    response.raise_for_status()
-    payload = response.json()
-    hourly = payload.get("hourly", {})
-
-    df = pd.DataFrame({
-        "datetime": hourly.get("time", []),
-        "aqi": hourly.get("us_aqi", []),
-    })
-
-    if df.empty:
-        return df
+    df = df.copy()
+    if "datetime" not in df.columns:
+        # try alternate names
+        if "date_time" in df.columns:
+            df["datetime"] = df["date_time"]
+        elif "timestamp" in df.columns:
+            df["datetime"] = df["timestamp"]
+        else:
+            raise RuntimeError("Feature group does not contain 'datetime' column")
 
     df["datetime"] = pd.to_datetime(df["datetime"])
-    df["aqi"] = pd.to_numeric(df["aqi"], errors="coerce")
-    df = df.dropna()
-    df = df.sort_values("datetime")
 
-    return df
+    mask = (df["datetime"].dt.year == int(year)) & (df["datetime"].dt.month == int(month))
+    month_df = df.loc[mask, ["datetime", "us_aqi"]].rename(columns={"us_aqi": "aqi"}).copy()
+
+    if month_df.empty:
+        return pd.DataFrame()
+
+    month_df = month_df.sort_values("datetime").reset_index(drop=True)
+    month_df["aqi"] = pd.to_numeric(month_df["aqi"], errors="coerce")
+    month_df = month_df.dropna()
+
+    return month_df
+
+
+# Helper: fetch latest pollutant measurements from Hopsworks
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_latest_pollutants_from_hopsworks():
+    try:
+        fg = get_feature_group()
+        df = fg.read()
+    except Exception as exc:
+        # propagate error so caller can fall back
+        raise RuntimeError(f"Unable to read feature group from Hopsworks: {exc}")
+
+    if df is None or df.empty:
+        raise RuntimeError("Feature group is empty")
+
+    df = df.copy()
+
+    # normalize datetime
+    if "datetime" in df.columns:
+        df["datetime"] = pd.to_datetime(df["datetime"])
+    else:
+        # try first column as datetime
+        df.iloc[:, 0] = pd.to_datetime(df.iloc[:, 0])
+        df = df.rename(columns={df.columns[0]: "datetime"})
+
+    latest_row = df.sort_values("datetime").tail(1).iloc[0]
+
+    pollutants = {}
+    for col in ["pm2_5", "pm10", "nitrogen_dioxide", "sulphur_dioxide", "ozone"]:
+        if col in df.columns:
+            val = latest_row.get(col, None)
+            pollutants[col] = None if pd.isna(val) else float(val)
+        else:
+            pollutants[col] = None
+
+    return pollutants
 
 
 # Sidebar
@@ -553,14 +592,20 @@ if "forecast_result" in st.session_state:
                 unsafe_allow_html=True
             )
 
-    # Top pollutants (line and small cards)
+    # Top pollutants (fetch real values from Hopsworks when available)
     st.markdown(
         '<div class="section-title">Top Pollutants</div>',
         unsafe_allow_html=True
     )
 
-    # Order for display
     pollutant_order = ["pm2_5", "pm10", "nitrogen_dioxide", "sulphur_dioxide", "ozone"]
+
+    # Try to fetch real pollutant values from Hopsworks; fall back to prediction row
+    try:
+        pollutants = fetch_latest_pollutants_from_hopsworks()
+    except Exception as exc:
+        pollutants = None
+        st.info(f"Could not load latest pollutants from Hopsworks: {exc}")
 
     # Choose a reference row (prefer 24h horizon)
     ref_row = predictions[predictions["horizon_hours"] == 24]
@@ -570,14 +615,18 @@ if "forecast_result" in st.session_state:
     # Inline summary
     inline_items = []
     for p in pollutant_order:
-        if not ref_row.empty and p in ref_row.columns:
-            try:
-                raw = ref_row[p].iloc[0]
-                display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
-            except Exception:
-                display = "—"
+        if pollutants is not None:
+            val = pollutants.get(p)
+            display = "—" if val is None else f"{val:.1f}"
         else:
-            display = "—"
+            if not ref_row.empty and p in ref_row.columns:
+                try:
+                    raw = ref_row[p].iloc[0]
+                    display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
+                except Exception:
+                    display = "—"
+            else:
+                display = "—"
         inline_items.append(f"{readable_feature(p)}: {display}")
 
     st.markdown(" • ".join(inline_items))
@@ -587,14 +636,18 @@ if "forecast_result" in st.session_state:
 
     for idx, p in enumerate(pollutant_order):
         with cols[idx]:
-            if not ref_row.empty and p in ref_row.columns:
-                try:
-                    raw = ref_row[p].iloc[0]
-                    display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
-                except Exception:
-                    display = "—"
+            if pollutants is not None:
+                val = pollutants.get(p)
+                display = "—" if val is None else f"{val:.1f}"
             else:
-                display = "—"
+                if not ref_row.empty and p in ref_row.columns:
+                    try:
+                        raw = ref_row[p].iloc[0]
+                        display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
+                    except Exception:
+                        display = "—"
+                else:
+                    display = "—"
 
             st.markdown(
                 f"""
@@ -697,27 +750,28 @@ if "forecast_result" in st.session_state:
         use_container_width=True
     )
 
-    # AQI Trend (monthly view)
+    # AQI Trend (monthly view) — fetch from Hopsworks
     st.markdown(
         '<div class="section-title">AQI Trend</div>',
         unsafe_allow_html=True
     )
 
     now = datetime.now()
-    years = [now.year, now.year - 1]
+    # Data available since Jan 2024
+    years = list(range(2024, now.year + 1))[::-1]
     selected_year = st.selectbox("Year", years, index=0)
 
     months = list(range(1, 13))
-    month_names = [datetime(selected_year, m, 1).strftime("%B") for m in months]
-    selected_month_idx = st.selectbox("Month", list(range(1, 13)), format_func=lambda m: datetime(selected_year, m, 1).strftime("%B"), index=now.month - 1 if selected_year == now.year else 0)
-    selected_month = int(selected_month_idx)
+    # default month selection: current month if current year else January
+    default_month_index = now.month - 1 if selected_year == now.year else 0
+    selected_month = st.selectbox("Month", months, index=default_month_index, format_func=lambda m: datetime(selected_year, m, 1).strftime("%B"))
 
     # Prevent future month selection
     if selected_year > now.year or (selected_year == now.year and selected_month > now.month):
         st.error("Data not available for future months")
     else:
         try:
-            month_df = fetch_monthly_aqi(selected_year, selected_month)
+            month_df = fetch_monthly_aqi_from_hopsworks(selected_year, selected_month)
 
             if month_df.empty:
                 st.info("No AQI data available for the selected month.")
@@ -768,7 +822,7 @@ if "forecast_result" in st.session_state:
                 st.plotly_chart(aqi_fig, use_container_width=True)
 
         except Exception as exc:
-            st.warning(f"Unable to load monthly AQI data: {exc}")
+            st.warning(f"Unable to load monthly AQI data from Hopsworks: {exc}")
 
     # Model explanation
 

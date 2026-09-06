@@ -317,8 +317,7 @@ def get_aqi_category(aqi):
     )
 
 
-# Feature names
-
+# Feature labels / readable names
 FEATURE_LABELS = {
     "temperature_2m": "Temperature",
     "relative_humidity_2m": "Relative Humidity",
@@ -350,48 +349,35 @@ FEATURE_LABELS = {
 
 
 def readable_feature(name):
-
-    return FEATURE_LABELS.get(
-        name,
-        name.replace("_", " ").title()
-    )
+    return FEATURE_LABELS.get(name, name.replace("_", " ").title())
 
 
-# Helper: fetch hourly AQI for a month from Hopsworks
+# Helper: fetch monthly AQI from Hopsworks
 @st.cache_data(ttl=1800, show_spinner=False)
 def fetch_monthly_aqi_from_hopsworks(year: int, month: int) -> pd.DataFrame:
-    """Fetch hourly AQI for a given year/month from the Hopsworks feature group."""
     try:
         fg = get_feature_group()
-        df = fg.read()  # hsfs feature group read()
+        df = fg.read()
     except Exception as exc:
         raise RuntimeError(f"Unable to read feature group from Hopsworks: {exc}")
-
     if df is None or df.empty:
         return pd.DataFrame()
-
     df = df.copy()
     if "datetime" not in df.columns:
-        # try alternate names
         if "date_time" in df.columns:
             df["datetime"] = df["date_time"]
         elif "timestamp" in df.columns:
             df["datetime"] = df["timestamp"]
         else:
             raise RuntimeError("Feature group does not contain 'datetime' column")
-
     df["datetime"] = pd.to_datetime(df["datetime"])
-
     mask = (df["datetime"].dt.year == int(year)) & (df["datetime"].dt.month == int(month))
     month_df = df.loc[mask, ["datetime", "us_aqi"]].rename(columns={"us_aqi": "aqi"}).copy()
-
     if month_df.empty:
         return pd.DataFrame()
-
     month_df = month_df.sort_values("datetime").reset_index(drop=True)
     month_df["aqi"] = pd.to_numeric(month_df["aqi"], errors="coerce")
     month_df = month_df.dropna()
-
     return month_df
 
 
@@ -402,24 +388,17 @@ def fetch_latest_pollutants_from_hopsworks():
         fg = get_feature_group()
         df = fg.read()
     except Exception as exc:
-        # propagate error so caller can fall back
         raise RuntimeError(f"Unable to read feature group from Hopsworks: {exc}")
-
     if df is None or df.empty:
         raise RuntimeError("Feature group is empty")
-
     df = df.copy()
-
     # normalize datetime
     if "datetime" in df.columns:
         df["datetime"] = pd.to_datetime(df["datetime"])
     else:
-        # try first column as datetime
         df.iloc[:, 0] = pd.to_datetime(df.iloc[:, 0])
         df = df.rename(columns={df.columns[0]: "datetime"})
-
     latest_row = df.sort_values("datetime").tail(1).iloc[0]
-
     pollutants = {}
     for col in ["pm2_5", "pm10", "nitrogen_dioxide", "sulphur_dioxide", "ozone"]:
         if col in df.columns:
@@ -427,50 +406,42 @@ def fetch_latest_pollutants_from_hopsworks():
             pollutants[col] = None if pd.isna(val) else float(val)
         else:
             pollutants[col] = None
-
     return pollutants
 
 
-# Helper: fetch latest AQI (from Hopsworks hourly pipeline)
+# Helper: fetch current AQI (latest) from Hopsworks
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_latest_aqi_from_hopsworks():
     """
-    Return dict: {"aqi": float or None, "datetime": pd.Timestamp or None}
+    Returns a dict: {"aqi": float or None, "datetime": pd.Timestamp or None}
     """
     try:
         fg = get_feature_group()
         df = fg.read()
     except Exception as exc:
         raise RuntimeError(f"Unable to read feature group from Hopsworks: {exc}")
-
     if df is None or df.empty:
         return {"aqi": None, "datetime": None}
-
     df = df.copy()
-
-    # normalize datetime column
     if "datetime" in df.columns:
         df["datetime"] = pd.to_datetime(df["datetime"])
-    elif "date_time" in df.columns:
-        df["datetime"] = pd.to_datetime(df["date_time"])
-    elif "timestamp" in df.columns:
-        df["datetime"] = pd.to_datetime(df["timestamp"])
     else:
-        return {"aqi": None, "datetime": None}
-
+        if "date_time" in df.columns:
+            df["datetime"] = pd.to_datetime(df["date_time"])
+        elif "timestamp" in df.columns:
+            df["datetime"] = pd.to_datetime(df["timestamp"])
+        else:
+            return {"aqi": None, "datetime": None}
     if "us_aqi" not in df.columns:
         return {"aqi": None, "datetime": None}
-
-    latest_row = df.sort_values("datetime").tail(1).iloc[0]
-    aqi_val = latest_row.get("us_aqi", None)
-
+    latest = df.sort_values("datetime").tail(1).iloc[0]
+    aqi_val = latest.get("us_aqi", None)
     if pd.isna(aqi_val):
-        return {"aqi": None, "datetime": latest_row.get("datetime", None)}
-
+        return {"aqi": None, "datetime": latest.get("datetime", None)}
     try:
-        return {"aqi": float(aqi_val), "datetime": pd.to_datetime(latest_row.get("datetime"))}
+        return {"aqi": float(aqi_val), "datetime": pd.to_datetime(latest.get("datetime"))}
     except Exception:
-        return {"aqi": None, "datetime": latest_row.get("datetime", None)}
+        return {"aqi": None, "datetime": latest.get("datetime", None)}
 
 
 def get_aqi_audience(aqi):
@@ -603,14 +574,23 @@ if _current.get("aqi") is not None:
         )
 
     with cols[1]:
-        # Title now matches Current AQI title (size, color) and is center-aligned.
-        # Message and audience use the same font-size and weight; audience colored but not bold.
+        # Health Advisory: title matches Current AQI title; advisory paragraph is a single paragraph,
+        # smaller font and uses the category color for the whole paragraph so it appears as one warning.
+        # Constrain max-width and use normal wrapping so text fits on the intended lines.
+        combined_parts = []
+        if message:
+            combined_parts.append(message)
+        if audience:
+            combined_parts.append(audience)
+        combined = " ".join(combined_parts).strip()
+
         st.markdown(
             f"""
             <div class="info-card">
                 <div style="font-size:0.85rem; color:#666666; font-weight:400; margin-bottom:8px; text-align:center;">Health Advisory</div>
-                <div style="text-align:center; color:#555555; font-size:1rem; font-weight:400;">{message if message else ''}</div>
-                <div style="text-align:center; margin-top:6px; color:{category_color}; font-weight:400; font-size:1rem;">{audience if audience else ''}</div>
+                <div style="text-align:center; color:{category_color}; font-size:0.95rem; line-height:1.35; max-width:640px; margin:0 auto; white-space:normal; word-wrap:break-word;">
+                    {combined}
+                </div>
             </div>
             """,
             unsafe_allow_html=True
@@ -632,7 +612,9 @@ else:
             f"""
             <div class="info-card">
                 <div style="font-size:0.85rem; color:#666666; font-weight:400; margin-bottom:8px; text-align:center;">Health Advisory</div>
-                <div style="text-align:center; color:#555555; font-size:1rem; font-weight:400;">Current AQI measurement is not available.</div>
+                <div style="text-align:center; color:#555555; font-size:0.95rem; line-height:1.35; max-width:640px; margin:0 auto; white-space:normal; word-wrap:break-word;">
+                    Current AQI measurement is not available.
+                </div>
             </div>
             """,
             unsafe_allow_html=True
@@ -995,185 +977,53 @@ if "forecast_result" in st.session_state:
         except Exception as exc:
             st.warning(f"Unable to load monthly AQI data from Hopsworks: {exc}")
 
-    # Model explanation
-
-    st.markdown(
-        '<div class="section-title">Model Explanation</div>',
-        unsafe_allow_html=True
-    )
-
-    st.caption(
-        "SHAP shows which input features contributed most to each AQI forecast. "
-        "Positive values push the prediction higher; negative values push it lower."
-    )
-
-    # Horizon selector
-
-    selected_horizon = st.radio(
-        "Forecast horizon",
-        [24, 48, 72],
-        horizontal=True,
-        format_func=lambda value:
-            f"{value}-hour forecast"
-    )
-
-
-    # Retrieve explanation
-
-    explanation = explanations.get(
-        selected_horizon
-    )
-
+    # Model explanation (SHAP)
+    st.markdown('<div class="section-title">Model Explanation</div>', unsafe_allow_html=True)
+    st.caption("SHAP shows which input features contributed most to each AQI forecast. Positive values push the prediction higher; negative values push it lower.")
+    selected_horizon = st.radio("Forecast horizon", [24, 48, 72], horizontal=True, format_func=lambda value: f"{value}-hour forecast")
+    explanation = explanations.get(selected_horizon)
 
     if explanation is not None:
-
         explanation = explanation.copy()
-
-
-        # Handle both possible SHAP column names.
         if "feature" not in explanation.columns:
-
-            st.error(
-                "SHAP explanation does not contain feature names."
-            )
-
+            st.error("SHAP explanation does not contain feature names.")
             st.stop()
-
-
         if "shap_value" not in explanation.columns:
-
-            st.error(
-                "SHAP explanation does not contain SHAP values."
-            )
-
+            st.error("SHAP explanation does not contain SHAP values.")
             st.stop()
-
-
-        explanation["feature"] = (
-            explanation["feature"]
-            .apply(
-                readable_feature
-            )
-        )
-
-
-        explanation = (
-            explanation
-            .sort_values(
-                "shap_value"
-            )
-        )
-
-
-        # SHAP bar chart
-
+        explanation["feature"] = explanation["feature"].apply(readable_feature)
+        explanation = explanation.sort_values("shap_value")
         fig_shap = go.Figure()
-
-
         fig_shap.add_trace(
             go.Bar(
-                x=explanation[
-                    "shap_value"
-                ],
-
-                y=explanation[
-                    "feature"
-                ],
-
+                x=explanation["shap_value"],
+                y=explanation["feature"],
                 orientation="h",
-
-                marker=dict(
-                    color=CHART_BLUE
-                ),
-
-                hovertemplate=(
-                    "<b>%{y}</b>"
-                    "<br>SHAP contribution: %{x:.3f}"
-                    "<extra></extra>"
-                )
+                marker=dict(color=CHART_BLUE),
+                hovertemplate=("<b>%{y}</b><br>SHAP contribution: %{x:.3f}<extra></extra>")
             )
         )
-
-
         fig_shap.update_layout(
             height=380,
-
-            margin=dict(
-                l=20,
-                r=20,
-                t=25,
-                b=20
-            ),
-
+            margin=dict(l=20, r=20, t=25, b=20),
             plot_bgcolor=WHITE,
             paper_bgcolor=WHITE,
-
-            font=dict(
-                color=TEXT_COLOR
-            ),
-
-            xaxis=dict(
-                title="SHAP Contribution",
-
-                title_font=dict(
-                    color=TEXT_COLOR
-                ),
-
-                tickfont=dict(
-                    color=TEXT_COLOR
-                ),
-
-                gridcolor=GRID_COLOR,
-
-                zeroline=True,
-
-                zerolinecolor=TEXT_COLOR,
-
-                linecolor=TEXT_COLOR,
-
-                tickcolor=TEXT_COLOR
-            ),
-
-            yaxis=dict(
-                title="",
-
-                tickfont=dict(
-                    color=TEXT_COLOR
-                ),
-
-                linecolor=TEXT_COLOR,
-
-                tickcolor=TEXT_COLOR
-            ),
-
+            font=dict(color=TEXT_COLOR),
+            xaxis=dict(title="SHAP Contribution", title_font=dict(color=TEXT_COLOR), tickfont=dict(color=TEXT_COLOR), gridcolor=GRID_COLOR, zeroline=True, zerolinecolor=TEXT_COLOR, linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR),
+            yaxis=dict(title="", tickfont=dict(color=TEXT_COLOR), linecolor=TEXT_COLOR, tickcolor=TEXT_COLOR),
             showlegend=False
         )
-
-
-        st.plotly_chart(
-            fig_shap,
-            use_container_width=True
-        )
-
-
+        st.plotly_chart(fig_shap, use_container_width=True)
     else:
-
-        st.info(
-            "SHAP explanation is not available for this forecast."
-        )
+        st.info("SHAP explanation is not available for this forecast.")
 
 
-# Initial state
-
+# Initial state when no forecast generated yet
 else:
-
-    st.info(
-        "Select 'Generate AQI Forecast' to retrieve the latest forecast."
-    )
+    st.info("Select 'Generate AQI Forecast' to retrieve the latest forecast.")
 
 
 # Footer
-
 st.markdown(
     """
     <div class="footer">

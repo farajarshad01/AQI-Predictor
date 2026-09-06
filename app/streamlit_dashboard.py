@@ -170,7 +170,7 @@ st.markdown(
         background-color: {WHITE};
         border: 1px solid {BORDER};
         border-radius: 10px;
-        padding: 0.6rem 0.75rem;
+        padding: 0.8rem 1rem;
         text-align: center;
     }}
 
@@ -183,16 +183,10 @@ st.markdown(
     }}
 
     .pollutant-value {{
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         font-weight: 700;
         color: {TEXT_COLOR};
-        margin-top: 0.25rem;
-    }}
-
-    .pollutant-unit {{
-        font-size: 0.72rem;
-        color: #666666;
-        margin-top: 0.15rem;
+        margin-top: 0.35rem;
     }}
 
     .footer {{
@@ -202,7 +196,7 @@ st.markdown(
         padding: 2rem 0 1rem 0;
     }}
 
-    /* Darker spinner for visibility (attempt to override Streamlit spinner) */
+    /* Darker spinner for visibility */
     .stSpinner, .stSpinner * {{
         color: #111 !important;
         stroke: #111 !important;
@@ -588,8 +582,9 @@ if _current.get("aqi") is not None:
                 <div style="font-size:2.0rem; font-weight:700; color:{TEXT_COLOR}; margin-top:0.25rem;">{aqi_value:.1f}</div>
                 <div style="margin-top:6px; color:{category_color}; font-weight:700;">{category}</div>
             </div>
-            <div style="flex:1; padding-left:1rem; color:#555555;">
-                {message}{" " if message else ""}{"• " + audience if audience else ""}{" " if (aqi_dt is not None and (message or audience)) else ""}{"Measured at " + pd.to_datetime(aqi_dt).strftime('%d %b %Y, %H:%M') if aqi_dt is not None else ""}
+            <div style="flex:1; padding-left:1rem; color:#555555; text-align:center;">
+                <div style="margin-bottom:6px;">{message if message else ""}</div>
+                <div>{audience if audience else ""}</div>
             </div>
         </div>
         """,
@@ -604,13 +599,16 @@ else:
                 <div style="font-size:2.0rem; font-weight:700; color:{TEXT_COLOR}; margin-top:0.25rem;">—</div>
                 <div style="margin-top:6px; color:#666666; font-weight:700;">N/A</div>
             </div>
-            <div style="flex:1; padding-left:1rem; color:#555555;">
-                Current AQI measurement is not available.
+            <div style="flex:1; padding-left:1rem; color:#555555; text-align:center;">
+                <div>Current AQI measurement is not available.</div>
             </div>
         </div>
         """,
         unsafe_allow_html=True
     )
+
+# Add spacing between the card and the Generate button
+st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
 
 # Generate forecast
@@ -760,43 +758,45 @@ if "forecast_result" in st.session_state:
     # Order for display
     pollutant_order = ["pm2_5", "pm10", "nitrogen_dioxide", "sulphur_dioxide", "ozone"]
 
-    # Try to fetch real pollutant values from Hopsworks; fall back to prediction row
-    try:
-        pollutants = fetch_latest_pollutants_from_hopsworks()
-    except Exception as exc:
-        pollutants = None
-        st.info(f"Could not load latest pollutants from Hopsworks: {exc}")
-
     # Choose a reference row (prefer 24h horizon)
     ref_row = predictions[predictions["horizon_hours"] == 24]
     if ref_row.empty and not predictions.empty:
         ref_row = predictions.iloc[[0]]
 
-    # Small cards only (no inline text)
+    # Inline summary
+    inline_items = []
+    for p in pollutant_order:
+        if not ref_row.empty and p in ref_row.columns:
+            try:
+                raw = ref_row[p].iloc[0]
+                display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
+            except Exception:
+                display = "—"
+        else:
+            display = "—"
+        inline_items.append(f"{readable_feature(p)}: {display}")
+
+    st.markdown(" • ".join(inline_items))
+
+    # Small cards
     cols = st.columns(len(pollutant_order))
 
     for idx, p in enumerate(pollutant_order):
         with cols[idx]:
-            if pollutants is not None:
-                val = pollutants.get(p)
-                display = "—" if val is None else f"{val:.1f}"
-            else:
-                if not ref_row.empty and p in ref_row.columns:
-                    try:
-                        raw = ref_row[p].iloc[0]
-                        display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
-                    except Exception:
-                        display = "—"
-                else:
+            if not ref_row.empty and p in ref_row.columns:
+                try:
+                    raw = ref_row[p].iloc[0]
+                    display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
+                except Exception:
                     display = "—"
+            else:
+                display = "—"
 
-            unit = POLLUTANT_UNITS.get(p, "")
             st.markdown(
                 f"""
                 <div class="pollutant-card">
                     <div class="pollutant-name">{readable_feature(p)}</div>
                     <div class="pollutant-value">{display}</div>
-                    <div class="pollutant-unit">{unit}</div>
                 </div>
                 """,
                 unsafe_allow_html=True

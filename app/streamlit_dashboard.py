@@ -532,25 +532,26 @@ with st.sidebar:
     )
 
 st.markdown(
-        f"""
-        <div style="
-            font-size:0.8rem;
-            color:#555555;
-            line-height:1.5;
-        ">
-            Air Quality Forecasts generated using weather observations, air quality data, machine learning models for 24hr / 48hr / 72hr forecasts.
-            <ul style="margin-top: 0.5rem; padding-left: 1.2rem;">
-                <li>Open Meteo</li>
-                <li>Catboost Regressor</li>
-                <li>Hopsworks</li>
-                <li>Github Actions</li>
-                <li>Streamlit</li>
-                <li>Shap</li>
-            </ul>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    f"""
+    <div style="
+        font-size:0.78rem;
+        color:{TEXT_COLOR};
+        line-height:1.45;
+        margin-top:0.6rem;
+    ">
+        Air Quality Forecasts generated using weather observations, air quality data, machine learning models for 24hr / 48hr / 72hr forecasts.
+        <ul style="margin-top:8px; padding-left:20px; color:{TEXT_COLOR};">
+            <li>Open Meteo</li>
+            <li>CatBoost Regressor</li>
+            <li>Hopsworks</li>
+            <li>GitHub Actions</li>
+            <li>Streamlit</li>
+            <li>SHAP</li>
+        </ul>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # Header
 

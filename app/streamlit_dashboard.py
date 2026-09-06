@@ -47,6 +47,15 @@ LATITUDE = 32.1617
 LONGITUDE = 74.1883
 AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
+# Pollutant units
+POLLUTANT_UNITS = {
+    "pm2_5": "µg/m³",
+    "pm10": "µg/m³",
+    "nitrogen_dioxide": "µg/m³",
+    "sulphur_dioxide": "µg/m³",
+    "ozone": "µg/m³",
+}
+
 # Page styling
 
 st.markdown(
@@ -161,7 +170,7 @@ st.markdown(
         background-color: {WHITE};
         border: 1px solid {BORDER};
         border-radius: 10px;
-        padding: 0.8rem 1rem;
+        padding: 0.6rem 0.75rem;
         text-align: center;
     }}
 
@@ -174,10 +183,16 @@ st.markdown(
     }}
 
     .pollutant-value {{
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         font-weight: 700;
         color: {TEXT_COLOR};
-        margin-top: 0.35rem;
+        margin-top: 0.25rem;
+    }}
+
+    .pollutant-unit {{
+        font-size: 0.72rem;
+        color: #666666;
+        margin-top: 0.15rem;
     }}
 
     .footer {{
@@ -194,16 +209,22 @@ st.markdown(
         fill: #111 !important;
     }}
 
-    /* Selectbox focus styling: switch background when focused/selected */
+    /* Selectbox styling: lighter background (#cbcbcb) when focused/selected, dark text */
     div[role="listbox"] > div[role="option"][aria-selected="true"] {{
-        background-color: {CHART_BLUE} !important;
-        color: #ffffff !important;
+        background-color: #cbcbcb !important;
+        color: {TEXT_COLOR} !important;
     }}
 
     /* fallback for native select elements */
     select:focus, .stSelectbox select:focus {{
-        background-color: {CHART_BLUE} !important;
-        color: #ffffff !important;
+        background-color: #cbcbcb !important;
+        color: {TEXT_COLOR} !important;
+    }}
+
+    /* option selected color for some browsers */
+    option:checked {{
+        background-color: #cbcbcb !important;
+        color: {TEXT_COLOR} !important;
     }}
 
     </style>
@@ -612,26 +633,7 @@ if "forecast_result" in st.session_state:
     if ref_row.empty and not predictions.empty:
         ref_row = predictions.iloc[[0]]
 
-    # Inline summary
-    inline_items = []
-    for p in pollutant_order:
-        if pollutants is not None:
-            val = pollutants.get(p)
-            display = "—" if val is None else f"{val:.1f}"
-        else:
-            if not ref_row.empty and p in ref_row.columns:
-                try:
-                    raw = ref_row[p].iloc[0]
-                    display = "—" if pd.isna(raw) else f"{float(raw):.1f}"
-                except Exception:
-                    display = "—"
-            else:
-                display = "—"
-        inline_items.append(f"{readable_feature(p)}: {display}")
-
-    st.markdown(" • ".join(inline_items))
-
-    # Small cards
+    # Small cards only (no inline text)
     cols = st.columns(len(pollutant_order))
 
     for idx, p in enumerate(pollutant_order):
@@ -649,11 +651,13 @@ if "forecast_result" in st.session_state:
                 else:
                     display = "—"
 
+            unit = POLLUTANT_UNITS.get(p, "")
             st.markdown(
                 f"""
                 <div class="pollutant-card">
                     <div class="pollutant-name">{readable_feature(p)}</div>
                     <div class="pollutant-value">{display}</div>
+                    <div class="pollutant-unit">{unit}</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -912,7 +916,7 @@ if "forecast_result" in st.session_state:
                 orientation="h",
 
                 marker=dict(
-                    color=TEXT_COLOR
+                    color=CHART_BLUE
                 ),
 
                 hovertemplate=(

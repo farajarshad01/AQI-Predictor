@@ -1,4 +1,3 @@
-# app/streamlit_dashboard.py
 import os
 import sys
 from datetime import datetime
@@ -532,21 +531,26 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    st.markdown(
+st.markdown(
         f"""
         <div style="
             font-size:0.8rem;
             color:#555555;
             line-height:1.5;
         ">
-            Air quality forecasts generated using
-            weather observations, air-quality data,
-            CatBoost machine-learning models and SHAP.
+            Air Quality Forecasts generated using weather observations, air quality data, machine learning models for 24hr / 48hr / 72hr forecasts.
+            <ul style="margin-top: 0.5rem; padding-left: 1.2rem;">
+                <li>Open Meteo</li>
+                <li>Catboost Regressor</li>
+                <li>Hopsworks</li>
+                <li>Github Actions</li>
+                <li>Streamlit</li>
+                <li>Shap</li>
+            </ul>
         </div>
         """,
         unsafe_allow_html=True
     )
-
 
 # Header
 
@@ -596,12 +600,15 @@ if _current.get("aqi") is not None:
         )
 
     with cols[1]:
+        # Title uses same color and stronger weight to harmonize with Current AQI
+        # Message and audience use same font size and are center-aligned.
+        # Audience (hazard) is colored but not bold.
         st.markdown(
             f"""
             <div class="info-card">
-                <div style="font-size:1rem; font-weight:700; color:{TEXT_COLOR}; margin-bottom:6px;">Health Advisory</div>
-                <div style="text-align:center; color:#555555; font-size:0.95rem;">{message if message else ''}</div>
-                <div style="text-align:center; margin-top:6px; color:{category_color}; font-weight:700;">{audience if audience else ''}</div>
+                <div style="font-size:1rem; font-weight:800; color:{TEXT_COLOR}; margin-bottom:8px; text-align:left;">Health Advisory</div>
+                <div style="text-align:center; color:#555555; font-size:1rem;">{message if message else ''}</div>
+                <div style="text-align:center; margin-top:6px; color:{category_color}; font-weight:400; font-size:1rem;">{audience if audience else ''}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -622,8 +629,8 @@ else:
         st.markdown(
             f"""
             <div class="info-card">
-                <div style="font-size:1rem; font-weight:700; color:{TEXT_COLOR}; margin-bottom:6px;">Health Advisory</div>
-                <div style="text-align:center; color:#555555; font-size:0.95rem;">Current AQI measurement is not available.</div>
+                <div style="font-size:1rem; font-weight:800; color:{TEXT_COLOR}; margin-bottom:8px; text-align:left;">Health Advisory</div>
+                <div style="text-align:center; color:#555555; font-size:1rem;">Current AQI measurement is not available.</div>
             </div>
             """,
             unsafe_allow_html=True

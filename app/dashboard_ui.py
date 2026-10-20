@@ -24,9 +24,9 @@ CATEGORIES = [
     {
         "max": 50,
         "label": "Good",
-        "ring": "#8FD19E",
-        "bg": "#E3F0E6",
-        "fg": "#25673A",
+        "ring": "#3DDC84",
+        "bg": "#3DDC84",
+        "fg": "#17181A",
         "headline": "Air quality is considered satisfactory.",
         "detail": "Enjoy outdoor activities as usual.",
         "actions": ["Outdoors: fine", "Windows: open"],
@@ -34,9 +34,9 @@ CATEGORIES = [
     {
         "max": 100,
         "label": "Moderate",
-        "ring": "#F2D66B",
-        "bg": "#FBF3D0",
-        "fg": "#7A5F00",
+        "ring": "#FFD60A",
+        "bg": "#FFD60A",
+        "fg": "#17181A",
         "headline": "Air quality is acceptable.",
         "detail": "Unusually sensitive people may experience minor effects.",
         "actions": ["Sensitive people: take breaks", "Windows: open"],
@@ -44,9 +44,9 @@ CATEGORIES = [
     {
         "max": 150,
         "label": "Unhealthy for Sensitive Groups",
-        "ring": "#F4A261",
-        "bg": "#FDEBD9",
-        "fg": "#8A410A",
+        "ring": "#FF9500",
+        "bg": "#FF9500",
+        "fg": "#17181A",
         "headline": "Sensitive groups may experience health effects.",
         "detail": (
             "Children, older adults and people with heart or lung "
@@ -57,9 +57,9 @@ CATEGORIES = [
     {
         "max": 200,
         "label": "Unhealthy",
-        "ring": "#E5675C",
-        "bg": "#FBE3E0",
-        "fg": "#9B2C25",
+        "ring": "#E5251F",
+        "bg": "#E5251F",
+        "fg": "#FFFFFF",
         "headline": "Everyone may begin to experience health effects.",
         "detail": (
             "People with heart or lung disease, older adults and "
@@ -70,9 +70,9 @@ CATEGORIES = [
     {
         "max": 300,
         "label": "Very Unhealthy",
-        "ring": "#A16BB5",
-        "bg": "#EEE0F3",
-        "fg": "#5E2A74",
+        "ring": "#8E24F5",
+        "bg": "#8E24F5",
+        "fg": "#FFFFFF",
         "headline": "Health alert: the risk of health effects is increased.",
         "detail": (
             "Everyone should avoid outdoor exertion; sensitive groups "
@@ -83,9 +83,9 @@ CATEGORIES = [
     {
         "max": float("inf"),
         "label": "Hazardous",
-        "ring": "#8C2F4A",
-        "bg": "#F4DCE3",
-        "fg": "#6B1530",
+        "ring": "#B0003A",
+        "bg": "#B0003A",
+        "fg": "#FFFFFF",
         "headline": "Health warning of emergency conditions.",
         "detail": "Everyone should stay indoors with filtered air if possible.",
         "actions": ["Mask: N95", "Windows: closed", "Air purifier: on"],
@@ -206,7 +206,7 @@ def _h(html):
 
     # Streamlit's markdown parser treats blank lines and indented lines
     # specially, so the HTML is collapsed onto one line.
-    return "".join(
+    return " ".join(
         line.strip()
         for line in html.strip().splitlines()
     )
@@ -214,29 +214,48 @@ def _h(html):
 
 # HTML builders
 
+def title_html():
+
+    return _h("""
+    <div class="head">
+        <div class="title">AQI Gujranwala</div>
+        <div class="head-s">Punjab, Pakistan</div>
+        <div class="head-d">72-hour machine-learning forecast</div>
+    </div>
+    """)
+
+
+def section_html(title, subtitle):
+
+    return _h(f"""
+    <div class="sec">
+        <div class="sec-t">{title}</div>
+        <div class="sec-s">{subtitle}</div>
+    </div>
+    """)
+
+
 def status_html(as_of, refreshed_minutes, stale_hours):
 
     if stale_hours > 3:
 
-        dot = "#E0A030"
+        dot = "#F59E0B"
 
-        text = (
+        headline = (
             f"Latest reading is {stale_hours:.0f} h old "
             f"({fmt_clock(as_of)})"
         )
 
     else:
 
-        dot = "#2E9E5B"
+        dot = "#22C55E"
 
-        text = (
-            f"Live · data for {fmt_clock(as_of)} · "
-            f"refreshed {refreshed_minutes} min ago"
-        )
+        headline = f"Live · data for {fmt_clock(as_of)}"
 
     return _h(f"""
     <div class="status">
-        <span class="dot" style="background:{dot}"></span>{text}
+        <div class="st-l"><span class="dot" style="background:{dot}"></span>{headline}</div>
+        <div class="st-s">Refreshed {refreshed_minutes} min ago</div>
     </div>
     """)
 
@@ -295,15 +314,15 @@ def forecast_html(value, delta, when):
 def _ratio_color(ratio):
 
     if ratio <= 1:
-        return "#8FD19E"
+        return "#3DDC84"
 
     if ratio <= 2:
-        return "#F2D66B"
+        return "#FFD60A"
 
     if ratio <= 3:
-        return "#F4A261"
+        return "#FF9500"
 
-    return "#E5675C"
+    return "#E5251F"
 
 
 def pollutants_html(current):
@@ -388,18 +407,21 @@ def about_html():
         ]
     )
 
+    text = (
+        "Air quality forecasts are generated from weather observations, "
+        "air-quality data, CatBoost machine-learning models and SHAP. "
+        "AQI values are modelled estimates from Open-Meteo, "
+        "not ground-station readings."
+    )
+
     return _h(f"""
     <div class="card about">
-        <div style="max-width:520px">
-            <div class="t">About this forecast</div>
-            <div class="m" style="line-height:1.5;margin-top:4px">
-                Air quality forecasts generated from weather observations,
-                air-quality data, CatBoost machine-learning models and SHAP.
-                AQI values are modelled estimates from Open-Meteo, not
-                ground-station readings.
-            </div>
+        <div class="t">About this forecast</div>
+        <div class="about-p">{text}</div>
+        <div class="built">
+            <div class="m">Built with</div>
+            <div class="chips">{chips}</div>
         </div>
-        <div class="chips" style="justify-content:flex-end">{chips}</div>
     </div>
     """)
 
@@ -537,7 +559,7 @@ def build_timeline(history, current, predictions, horizon, days):
             y0=low,
             y1=min(high, y_max),
             fillcolor=color,
-            opacity=0.17,
+            opacity=0.15,
             line_width=0,
             layer="below",
         )
@@ -615,7 +637,21 @@ def css():
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="collapsedControl"] { display: none; }
     footer { visibility: hidden; }
-    .block-container { max-width: 1240px; padding: 2.2rem 2.4rem 3rem; }
+
+    /* The CSS block itself must not take up a gap in the layout. */
+    [data-testid="stElementContainer"]:has(style) { display: none; }
+
+    /* Spacing system: 3rem between sections, 1.5rem inside a section,
+       1.25rem inside a card. */
+    .block-container {
+        max-width: 1280px;
+        padding: 3rem 3rem 4rem;
+    }
+    .block-container > [data-testid="stVerticalBlock"] { gap: 3rem; }
+    .st-key-sec_now,
+    .st-key-sec_pollutants,
+    .st-key-sec_trends,
+    .st-key-sec_about { gap: 1.5rem !important; }
 
     .card,
     .st-key-forecast_card,
@@ -624,76 +660,105 @@ def css():
         background: #FFFFFF;
         border: 1px solid #E8E6E1;
         border-radius: 24px;
-        padding: 28px;
+        padding: 36px 40px;
         min-width: 0;
+        box-sizing: border-box;
     }
-    .st-key-forecast_card { min-height: 100%; }
+    .st-key-forecast_card,
+    .st-key-timeline_card,
+    .st-key-drivers_card { gap: 1.25rem !important; }
+    .st-key-forecast_card { min-height: 360px; }
+    .st-key-timeline_card,
+    .st-key-drivers_card { min-height: 590px; }
 
-    .m { font-size: 13px; color: #6B6F76; }
+    .m { font-size: 14px; color: #6B6F76; line-height: 1.5; }
     .u { font-size: 13px; font-weight: 500; color: #6B6F76; }
-    .t { font-weight: 700; font-size: 18px; color: #17181A; }
+    .t { font-weight: 700; font-size: 19px; color: #17181A; }
 
     .ch {
         display: inline-block;
         border-radius: 999px;
-        padding: 5px 12px;
+        padding: 6px 14px;
         font-size: 13px;
-        font-weight: 600;
+        font-weight: 700;
     }
-    .red { background: #FBE3E0; color: #9B2C25; }
-    .gr  { background: #E3F0E6; color: #25673A; }
-    .sk  { background: #F0EEE9; color: #4A4E55; }
-    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .red { background: #FFDAD6; color: #B3140D; }
+    .gr  { background: #C9F5DA; color: #0A7A3A; }
+    .sk  { background: #F0EEE9; color: #4A4E55; font-weight: 600; }
+    .chips { display: flex; gap: 10px; flex-wrap: wrap; }
 
-    .title { font-size: 30px; font-weight: 800; line-height: 1.15; }
-    .status { display: flex; align-items: center; gap: 8px;
-              font-size: 13px; color: #6B6F76; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    /* Header */
+    .head { display: flex; flex-direction: column; gap: 6px; }
+    .title { font-size: 34px; font-weight: 800; line-height: 1.1; }
+    .head-s { font-size: 17px; font-weight: 600; color: #17181A; }
+    .head-d { font-size: 14px; color: #6B6F76; }
+    .st-key-refresh_btn { display: flex; justify-content: flex-end; width: 100%; }
+    .st-key-refresh_btn button {
+        border-radius: 999px; min-height: 48px;
+        padding: 0 28px; font-weight: 700;
+    }
+    .status { display: flex; flex-direction: column; align-items: flex-end;
+              gap: 4px; text-align: right; }
+    .st-l { display: flex; align-items: center; gap: 8px;
+            font-size: 14px; font-weight: 600; }
+    .st-s { font-size: 13px; color: #6B6F76; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 
-    .hero { display: flex; align-items: center; gap: 30px;
-            flex-wrap: wrap; min-height: 100%; box-sizing: border-box; }
-    .ring { width: 200px; height: 200px; border-radius: 50%; flex: none;
+    /* Section headers */
+    .sec { display: flex; flex-direction: column; gap: 4px; }
+    .sec-t { font-size: 22px; font-weight: 800; }
+    .sec-s { font-size: 14px; color: #6B6F76; }
+
+    /* Hero */
+    .hero { display: flex; align-items: center; gap: 40px; flex-wrap: wrap;
+            min-height: 360px; }
+    .ring { width: 220px; height: 220px; border-radius: 50%; flex: none;
             display: flex; align-items: center; justify-content: center; }
-    .ring-in { width: 168px; height: 168px; border-radius: 50%;
+    .ring-in { width: 184px; height: 184px; border-radius: 50%;
                background: #FFFFFF; display: flex; flex-direction: column;
-               align-items: center; justify-content: center; }
-    .ring-n { font-size: 56px; font-weight: 800; line-height: 1; }
-    .ring-l { font-size: 13px; color: #6B6F76; margin-top: 4px; }
-    .hero-t { display: flex; flex-direction: column; gap: 12px;
-              flex: 1; min-width: 220px; }
-    .hero-h { font-size: 20px; font-weight: 700; line-height: 1.3; }
-    .hero-d { font-size: 14px; line-height: 1.5; }
+               align-items: center; justify-content: center; gap: 4px; }
+    .ring-n { font-size: 60px; font-weight: 800; line-height: 1; }
+    .ring-l { font-size: 14px; color: #6B6F76; }
+    .hero-t { display: flex; flex-direction: column; gap: 18px;
+              flex: 1; min-width: 240px; }
+    .hero-h { font-size: 22px; font-weight: 700; line-height: 1.3; }
+    .hero-d { font-size: 15px; line-height: 1.6; }
 
-    .fv { display: flex; align-items: baseline; gap: 12px;
-          flex-wrap: wrap; margin-top: 18px; }
-    .fn { font-size: 60px; font-weight: 800; line-height: 1; }
-    .fm { margin-top: 16px; display: flex; align-items: center;
-          gap: 10px; flex-wrap: wrap; }
+    /* Forecast card */
+    .fv { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .fn { font-size: 64px; font-weight: 800; line-height: 1; }
+    .fm { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
-    .tiles { display: grid; gap: 16px;
-             grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+    /* Pollutant tiles */
+    .tiles { display: grid; gap: 24px;
+             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
     .tile { background: #FFFFFF; border: 1px solid #E8E6E1;
-            border-radius: 18px; padding: 18px;
+            border-radius: 20px; padding: 24px;
+            display: flex; flex-direction: column; gap: 10px;
             transition: transform .15s, box-shadow .15s; }
     .tile:hover { transform: translateY(-3px);
-                  box-shadow: 0 8px 20px rgba(23, 24, 26, .08); }
-    .tv { font-size: 26px; font-weight: 700; margin: 4px 0 10px; }
-    .tg { margin-top: 8px; }
-    .bar { height: 6px; background: #EEECE7; border-radius: 3px; }
-    .bar i { display: block; height: 6px; border-radius: 3px; }
+                  box-shadow: 0 10px 24px rgba(23, 24, 26, .09); }
+    .tv { font-size: 28px; font-weight: 700; line-height: 1.1; }
+    .bar { height: 8px; background: #EEECE7; border-radius: 4px; }
+    .bar i { display: block; height: 8px; border-radius: 4px; }
 
-    .dr { display: grid; grid-template-columns: minmax(0, 1fr) 130px 48px;
-          gap: 12px; align-items: center; font-size: 14px; padding: 9px 0; }
+    /* Model explanation rows */
+    .dr { display: grid; grid-template-columns: minmax(0, 1fr) 130px 52px;
+          gap: 14px; align-items: center; font-size: 15px; padding: 14px 0;
+          border-bottom: 1px solid #F0EEE9; }
+    .dr:last-of-type { border-bottom: 0; }
     .dr b { text-align: right; }
-    .tr { position: relative; height: 8px; background: #F0EEE9;
-          border-radius: 4px; }
-    .tr i { position: absolute; height: 8px; }
-    .tr.up i { left: 50%; background: #C23A32; border-radius: 0 4px 4px 0; }
-    .tr.dn i { right: 50%; background: #2F6FB5; border-radius: 4px 0 0 4px; }
+    .tr { position: relative; height: 10px; background: #F0EEE9;
+          border-radius: 5px; }
+    .tr i { position: absolute; height: 10px; }
+    .tr.up i { left: 50%; background: #E5251F; border-radius: 0 5px 5px 0; }
+    .tr.dn i { right: 50%; background: #1E7BE8; border-radius: 5px 0 0 5px; }
 
-    .about { display: flex; justify-content: space-between;
-             align-items: center; gap: 24px; flex-wrap: wrap; }
-    .foot { text-align: center; font-size: 13px; color: #6B6F76;
-            padding-top: 8px; }
+    /* About */
+    .about { display: flex; flex-direction: column; gap: 20px; }
+    .about-p { font-size: 15px; line-height: 1.7; color: #4A4E55;
+               max-width: 760px; }
+    .built { display: flex; flex-direction: column; gap: 12px; }
+    .foot { text-align: center; font-size: 13px; color: #6B6F76; }
     </style>
     """

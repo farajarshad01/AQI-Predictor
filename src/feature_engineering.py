@@ -172,3 +172,52 @@ def get_training_data(df):
     return df[
         ["datetime"] + FEATURES + TARGETS
     ].copy()
+
+
+INTEGER_TYPES = {
+    "bigint": "int64",
+    "int": "int32",
+    "smallint": "int16",
+    "tinyint": "int8"
+}
+
+DECIMAL_TYPES = {
+    "double": "float64",
+    "float": "float32"
+}
+
+
+def match_schema(df, feature_group):
+
+    # Hopsworks rejects an insert when a column's type differs from the
+    # feature group schema. Open-Meteo returns whole numbers for some
+    # columns (humidity, cloud cover, AQI), but pandas turns a whole column
+    # into decimals as soon as one hour is missing in the fetched window.
+    # Cast every column back to the type the feature group expects.
+    df = df.copy()
+
+    # A brand-new feature group has no schema yet, so nothing to match.
+    for feature in getattr(feature_group, "features", None) or []:
+
+        name = feature.name
+
+        kind = str(feature.type).lower()
+
+        if name not in df.columns:
+            continue
+
+        if kind in INTEGER_TYPES:
+
+            df[name] = (
+                df[name]
+                .round()
+                .astype(INTEGER_TYPES[kind])
+            )
+
+        elif kind in DECIMAL_TYPES:
+
+            df[name] = df[name].astype(
+                DECIMAL_TYPES[kind]
+            )
+
+    return df

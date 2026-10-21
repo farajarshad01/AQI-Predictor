@@ -23,7 +23,8 @@ from .data_fetch import (
 
 from .feature_engineering import (
     create_features,
-    get_feature_data
+    get_feature_data,
+    match_schema
 )
 
 from .hopsworksclients import (
@@ -146,7 +147,14 @@ def run(days=45, apply=False):
 
         return
 
-    get_or_create_feature_group().insert(
+    feature_group = get_or_create_feature_group()
+
+    rows = match_schema(
+        rows,
+        feature_group
+    )
+
+    feature_group.insert(
         rows,
         wait=True
     )

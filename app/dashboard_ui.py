@@ -303,12 +303,22 @@ def forecast_html(value, delta, when):
         delta_chip = f'<span class="ch red">↑ {delta:.1f} vs now</span>'
 
     return _h(f"""
-    <div class="fv"><span class="fn">{value:.1f}</span>{delta_chip}</div>
-    <div class="fm">
-        <span class="ch" style="background:{category['bg']};color:{category['fg']}">{category['label']}</span>
-        <span class="m">{fmt_day_time(when)}</span>
+    <div class="fc-main">
+        <div class="fv"><span class="fn">{value:.1f}</span>{delta_chip}</div>
+        <div class="fm">
+            <span class="ch" style="background:{category['bg']};color:{category['fg']}">{category['label']}</span>
+            <span class="m">{fmt_day_time(when)}</span>
+        </div>
     </div>
     """)
+
+
+def forecast_hint_html():
+
+    return (
+        '<div class="fc-foot">Pick a horizon to update the chart '
+        "and the model explanation below.</div>"
+    )
 
 
 def _ratio_color(ratio):
@@ -667,7 +677,12 @@ def css():
     .st-key-forecast_card,
     .st-key-timeline_card,
     .st-key-drivers_card { gap: 1.25rem !important; }
-    .st-key-forecast_card { min-height: 360px; }
+    .st-key-forecast_card { min-height: 360px; justify-content: space-between; }
+    /* Streamlit gives every markdown block a negative bottom margin, which
+       squeezes the gaps and pushes headings below their neighbours. */
+    .st-key-forecast_card [data-testid="stMarkdownContainer"],
+    .st-key-forecast_card [data-testid="stMarkdown"] { margin-bottom: 0 !important; }
+    .st-key-horizon_control { display: flex; justify-content: flex-end; width: 100%; }
     .st-key-timeline_card,
     .st-key-drivers_card { min-height: 590px; }
 
@@ -725,9 +740,14 @@ def css():
     .hero-d { font-size: 15px; line-height: 1.6; }
 
     /* Forecast card */
-    .fv { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-    .fn { font-size: 64px; font-weight: 800; line-height: 1; }
-    .fm { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .fc-main { display: flex; flex-direction: column; gap: 22px; }
+    .fv { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .fn { font-size: 84px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+    .fm { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .fm .ch { padding: 8px 18px; font-size: 14px; }
+    .fm .m { font-size: 15px; }
+    .fc-foot { border-top: 1px solid #F0EEE9; padding-top: 18px;
+               font-size: 14px; line-height: 1.5; color: #6B6F76; }
 
     /* Pollutant tiles */
     .tiles { display: grid; gap: 24px;

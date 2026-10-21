@@ -16,10 +16,17 @@ for path in (PROJECT_ROOT, APP_DIR):
     if path not in sys.path:
         sys.path.insert(0, path)
 
+import importlib
+
 import pandas as pd
 import streamlit as st
 
 import dashboard_ui as ui
+
+# Streamlit keeps imported modules in memory between redeploys, so a
+# freshly pushed dashboard_ui.py can be ignored until the app restarts.
+# Reloading it makes sure the version on disk is always the one used.
+importlib.reload(ui)
 
 from src.data_fetch import fetch_air_quality_history
 from src.prediction_pipeline import predict
@@ -246,8 +253,7 @@ with st.container(key="sec_now"):
             )
 
             st.markdown(
-                '<div class="m">Pick a horizon to update the '
-                "chart and the model explanation below.</div>",
+                ui.forecast_hint_html(),
                 unsafe_allow_html=True
             )
 

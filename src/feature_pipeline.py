@@ -92,6 +92,32 @@ def run():
         get_or_create_feature_group()
     )
 
+    # Hopsworks' offline writer (Hudi) fails with a ClassCastException
+    # (Instant cannot be cast to Long) whenever an insert updates a row
+    # that already exists. Only rows that are not stored yet are inserted,
+    # so every insert is a pure append. The wide window still heals gaps.
+    if getattr(feature_group, "features", None):
+
+        stored = feature_group.read()
+
+        known = pd.to_datetime(
+            stored["datetime"],
+            utc=True
+        )
+
+        rows = rows[
+            ~rows["datetime"].isin(known)
+        ]
+
+    if rows.empty:
+
+        print(
+            "No new rows to insert: "
+            "the feature group is up to date."
+        )
+
+        return
+
     rows = match_schema(
         rows,
         feature_group

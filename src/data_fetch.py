@@ -1,20 +1,75 @@
+import time
+
 import requests
 import pandas as pd
 
 from .config import LATITUDE, LONGITUDE
 
 
+RETRY_STATUS = {429, 500, 502, 503, 504}
+
+AIR_QUALITY_VARIABLES = (
+    "pm10,"
+    "pm2_5,"
+    "carbon_monoxide,"
+    "nitrogen_dioxide,"
+    "sulphur_dioxide,"
+    "ozone,"
+    "us_aqi"
+)
+
+WEATHER_VARIABLES = (
+    "temperature_2m,"
+    "relative_humidity_2m,"
+    "wind_speed_10m,"
+    "surface_pressure,"
+    "precipitation,"
+    "cloud_cover"
+)
+
+
+def _get_json(url, params, retries=3):
+
+    # Retries rate limits (429), server errors and network hiccups, which
+    # are common when many GitHub Actions runners share one IP address.
+    for attempt in range(1, retries + 1):
+
+        try:
+
+            response = requests.get(
+                url,
+                params=params,
+                timeout=120
+            )
+
+        except (
+            requests.ConnectionError,
+            requests.Timeout
+        ):
+
+            if attempt == retries:
+                raise
+
+        else:
+
+            if response.status_code not in RETRY_STATUS:
+
+                response.raise_for_status()
+
+                return response.json()
+
+            if attempt == retries:
+                response.raise_for_status()
+
+        time.sleep(2 * attempt)
+
+
 def _request(url, params):
 
-    response = requests.get(
+    data = _get_json(
         url,
-        params=params,
-        timeout=120
+        params
     )
-
-    response.raise_for_status()
-
-    data = response.json()
 
     if "hourly" not in data:
         raise ValueError(
@@ -239,3 +294,89 @@ def fetch_forecast_air_quality(
     )
 
     return _prepare(df)
+
+
+def _up_to_now(df):
+
+    # Open-Meteo returns forecast hours after the past ones.
+    # Keep only hours that have already happened.
+    now_hour = pd.Timestamp.now(
+        tz="UTC"
+    ).floor("h")
+
+    return df[
+        df["datetime"] <= now_hour
+    ].reset_index(drop=True)
+
+
+def fetch_past_days_weather(
+    past_days=92
+):
+
+    url = (
+        "https://api.open-meteo.com/v1/forecast"
+    )
+
+    params = {
+        "latitude": LATITUDE,
+        "longitude": LONGITUDE,
+        "past_days": past_days,
+        "hourly": WEATHER_VARIABLES,
+        "timezone": "UTC"
+    }
+
+    df = _prepare(
+        _request(
+            url,
+            params
+        )
+    )
+
+    return _up_to_now(df)
+
+
+def fetch_past_days_air_quality(
+    past_days=92,
+    variables=AIR_QUALITY_VARIABLES
+):
+
+    url = (
+        "https://air-quality-api.open-meteo.com/v1/air-quality"
+    )
+
+    params = {
+        "latitude": LATITUDE,
+        "longitude": LONGITUDE,
+        "past_days": past_days,
+        "hourly": variables,
+        "timezone": "UTC"
+    }
+
+    df = _prepare(
+        _request(
+            url,
+            params
+        )
+    )
+
+    return _up_to_now(df)
+
+
+def fetch_air_quality_history(
+    past_days=90
+):
+
+    # Live AQI history for the dashboard timeline. It reads Open-Meteo
+    # directly, so it is always current and does not depend on the
+    # feature store being up to date.
+    df = fetch_past_days_air_quality(
+        past_days=past_days,
+        variables="us_aqi"
+    )
+
+    return (
+        df[["datetime", "us_aqi"]]
+        .dropna()
+        .sort_values("datetime")
+        .reset_index(drop=True)
+    )

@@ -7,9 +7,6 @@ The project combines real-time environmental data, automated ML pipelines, cloud
 # Live Links
 ### Primary:
 https://aqi-predictor-system.streamlit.app/
-### Alternative:
-https://aqi-predictor-basic.streamlit.app/
-(if the primary link fails)
 
 ## Overview
 

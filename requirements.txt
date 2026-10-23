@@ -6,7 +6,7 @@ requests
 scikit-learn
 catboost
 hopsworks
-streamlit
+streamlit>=1.40
 python-dotenv
 confluent-kafka
 shap

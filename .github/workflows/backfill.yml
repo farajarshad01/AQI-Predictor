@@ -2,6 +2,22 @@ name: Historical Backfill
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "gap_fill = insert only the missing recent hours (default). backfill = rebuild old history from the archive."
+        type: choice
+        options:
+          - gap_fill
+          - backfill
+        default: gap_fill
+      days:
+        description: "gap_fill only: how many past days to check (max 89)"
+        type: string
+        default: "75"
+      apply:
+        description: "gap_fill only: tick to insert the rows. Unticked = dry run, nothing is changed."
+        type: boolean
+        default: false
 
 jobs:
   backfill:
@@ -29,5 +45,18 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run historical backfill
+        if: ${{ inputs.mode == 'backfill' }}
         run: |
           python -m src.backfill
+
+      - name: Gap fill (dry run unless "apply" is ticked)
+        if: ${{ inputs.mode == 'gap_fill' }}
+        env:
+          DAYS: ${{ inputs.days }}
+          APPLY: ${{ inputs.apply }}
+        run: |
+          if [ "$APPLY" = "true" ]; then
+            python -m src.gap_fill --days "$DAYS" --apply
+          else
+            python -m src.gap_fill --days "$DAYS"
+          fi

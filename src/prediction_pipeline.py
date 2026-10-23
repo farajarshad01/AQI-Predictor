@@ -385,12 +385,38 @@ def predict():
         )
     )
 
+    latest = latest_features.iloc[0]
+
+    current = {
+        "datetime": latest["datetime"]
+    }
+
+    for key in [
+        "us_aqi",
+        "pm2_5",
+        "pm10",
+        "nitrogen_dioxide",
+        "sulphur_dioxide",
+        "ozone",
+        "carbon_monoxide",
+        "temperature_2m",
+        "relative_humidity_2m",
+        "wind_speed_10m"
+    ]:
+
+        current[key] = float(
+            latest[key]
+        )
+
     return {
         "predictions":
             predictions,
 
         "shap_explanations":
-            explanations
+            explanations,
+
+        "current":
+            current
     }
 
 

@@ -4,6 +4,10 @@ AQI Predictor is an end-to-end machine learning system that forecasts **Air Qual
 
 The project combines real-time environmental data, automated ML pipelines, cloud-based feature and model management, and explainable AI into a single forecasting application.
 
+# Live Links
+### Primary:
+https://aqi-predictor-system.streamlit.app/
+
 ## Overview
 
 The project:

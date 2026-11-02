@@ -22,15 +22,7 @@ The project:
 - Displays predictions through a Streamlit dashboard
 
 ## Tech Stack 
-**Python**  | 
-**Pandas**  | 
-**NumPy**  | 
-**Scikit-learn** |
-**CatBoost** | **SHAP** |
-**Hopsworks** |
-**Streamlit** |
-**Plotly** |
-**GitHub Actions** |
+**Python**  |  **Pandas**  |  **NumPy**  |  **Scikit-learn**  |  **CatBoost**  |  **XGBoost and Random Forest (model comparison)**  |  **SHAP**  |  **Hopsworks**  |  **Streamlit**  |  **Plotly**  |  **GitHub Actions**
 
 
 ## Project Architecture
@@ -73,6 +65,10 @@ Three CatBoost regression models are trained for different forecasting horizons:
 Models are evaluated using MAE, RMSE, and R², then trained on the available data and registered in the Hopsworks Model Registry.
 
 SHAP provides feature-level explanations, showing which environmental and historical factors are contributing to each AQI prediction.
+
+## Model Selection
+
+Random Forest, XGBoost and CatBoost were compared on the same engineered features using a chronological 80/20 split. CatBoost gave the best overall results (24-hour R² 0.6979 after tuning, compared with 0.6888 for the best tuned XGBoost and 0.6587 for Random Forest), so a separate CatBoost model is used for each forecast horizon. The full experiments and tuning tables are in [Report-AQI.pdf](Report-AQI.pdf).
 
 ## MLOps
 
